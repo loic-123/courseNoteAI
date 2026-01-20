@@ -14,7 +14,8 @@ export async function POST(request: NextRequest) {
 
     // Extract all parameters
     const files = formData.getAll('file') as File[];
-    const claudeApiKey = formData.get('claudeApiKey') as string;
+    const userApiKey = formData.get('claudeApiKey') as string | null;
+    const useServerKey = formData.get('useServerKey') === 'true';
     const institutionId = formData.get('institutionId') as string;
     const courseId = formData.get('courseId') as string | null;
     const courseCode = formData.get('courseCode') as string | null;
@@ -30,8 +31,31 @@ export async function POST(request: NextRequest) {
     const language = formData.get('language') as 'en' | 'fr';
     const customPrompt = formData.get('customPrompt') as string | null;
 
+    // Determine which API key to use
+    let claudeApiKey: string;
+    if (useServerKey) {
+      // Use server's API key (paid users)
+      const serverKey = process.env.ANTHROPIC_API_KEY;
+      if (!serverKey) {
+        return NextResponse.json(
+          { error: 'Server API key not configured' },
+          { status: 500 }
+        );
+      }
+      claudeApiKey = serverKey;
+    } else {
+      // Use user's own API key (free)
+      if (!userApiKey) {
+        return NextResponse.json(
+          { error: 'API key is required' },
+          { status: 400 }
+        );
+      }
+      claudeApiKey = userApiKey;
+    }
+
     // Validate required fields
-    if (!files || files.length === 0 || !claudeApiKey || !institutionId || !creatorName || !title) {
+    if (!files || files.length === 0 || !institutionId || !creatorName || !title) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }

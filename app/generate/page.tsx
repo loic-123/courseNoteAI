@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { ApiKeyStorage } from '@/lib/storage/api-key-storage';
-import { Upload, Loader2, X, Sparkles, FileText, Settings, ChevronDown, ChevronRight, CreditCard, Tag, Check } from 'lucide-react';
+import { Upload, Loader2, X, Sparkles, FileText, Settings, ChevronDown, ChevronRight, CreditCard, Tag, Check, Key } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ function GeneratePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [files, setFiles] = useState<File[]>([]);
+  const [useOwnKey, setUseOwnKey] = useState(true); // true = use own key (free), false = pay $2
   const [apiKey, setApiKey] = useState('');
   const [rememberKey, setRememberKey] = useState(true);
   const [creatorName, setCreatorName] = useState('');
@@ -38,7 +39,7 @@ function GeneratePageContent() {
   const [statusMessage, setStatusMessage] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
-  // Payment state
+  // Payment state (only for users without API key)
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [promoValidating, setPromoValidating] = useState(false);
@@ -53,7 +54,10 @@ function GeneratePageContent() {
 
   useEffect(() => {
     const savedKey = ApiKeyStorage.get();
-    if (savedKey) setApiKey(savedKey);
+    if (savedKey) {
+      setApiKey(savedKey);
+      setUseOwnKey(true);
+    }
   }, []);
 
   // Check for successful payment on return from Stripe
@@ -178,11 +182,24 @@ function GeneratePageContent() {
   };
 
   const handleGenerateClick = () => {
-    if (files.length === 0 || !apiKey || !creatorName || !title || !courseCode || !courseName) {
+    // Check required fields (API key only required if using own key)
+    if (files.length === 0 || !creatorName || !title || !courseCode || !courseName) {
       alert('Please fill in all required fields and upload at least one file');
       return;
     }
 
+    if (useOwnKey && !apiKey) {
+      alert('Please enter your Claude API key or switch to paid generation');
+      return;
+    }
+
+    // If using own key, generate directly (free)
+    if (useOwnKey) {
+      handleGenerate();
+      return;
+    }
+
+    // If not using own key, check payment
     if (!isPaid) {
       setShowPaymentModal(true);
       return;
@@ -192,7 +209,7 @@ function GeneratePageContent() {
   };
 
   const handleGenerate = async () => {
-    if (rememberKey) {
+    if (rememberKey && apiKey) {
       ApiKeyStorage.save(apiKey);
     }
 
@@ -205,7 +222,11 @@ function GeneratePageContent() {
       files.forEach(file => {
         formData.append('file', file);
       });
-      formData.append('claudeApiKey', apiKey);
+      // Only send API key if user is using their own
+      if (useOwnKey && apiKey) {
+        formData.append('claudeApiKey', apiKey);
+      }
+      formData.append('useServerKey', (!useOwnKey).toString());
       formData.append('institutionId', '00000000-0000-0000-0000-000000000001');
       formData.append('courseCode', courseCode);
       formData.append('courseName', courseName);
@@ -302,8 +323,8 @@ function GeneratePageContent() {
           </p>
         </div>
 
-        {/* Payment Status Banner */}
-        {isPaid && (
+        {/* Payment Status Banner - only show when using paid mode */}
+        {!useOwnKey && isPaid && (
           <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center gap-3">
             <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center">
               <Check className="h-4 w-4 text-green-400" />
@@ -390,28 +411,90 @@ function GeneratePageContent() {
               )}
             </div>
 
-            {/* API Key */}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Claude API Key *</label>
-              <Input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-ant-..."
-                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500"
-              />
-              <div className="flex items-center mt-2">
-                <input
-                  type="checkbox"
-                  id="remember-key"
-                  checked={rememberKey}
-                  onChange={(e) => setRememberKey(e.target.checked)}
-                  className="mr-2 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500"
-                />
-                <label htmlFor="remember-key" className="text-sm text-slate-400">
-                  Remember my key
-                </label>
+            {/* API Key Option */}
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-slate-300">Generation Method</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setUseOwnKey(true)}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    useOwnKey
+                      ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                      useOwnKey ? 'bg-blue-500/20' : 'bg-slate-700'
+                    }`}>
+                      <Key className={`h-4 w-4 ${useOwnKey ? 'text-blue-400' : 'text-slate-400'}`} />
+                    </div>
+                    <span className={`font-medium ${useOwnKey ? 'text-white' : 'text-slate-300'}`}>
+                      Use my API key
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">Free - you pay Anthropic directly</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setUseOwnKey(false)}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    !useOwnKey
+                      ? 'border-purple-500 bg-purple-500/10'
+                      : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
+                      !useOwnKey ? 'bg-purple-500/20' : 'bg-slate-700'
+                    }`}>
+                      <CreditCard className={`h-4 w-4 ${!useOwnKey ? 'text-purple-400' : 'text-slate-400'}`} />
+                    </div>
+                    <span className={`font-medium ${!useOwnKey ? 'text-white' : 'text-slate-300'}`}>
+                      Pay $2.00
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">No API key needed</p>
+                </button>
               </div>
+
+              {/* API Key Input - only show if using own key */}
+              {useOwnKey && (
+                <div className="space-y-2">
+                  <Input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="sk-ant-..."
+                    className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500"
+                  />
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="remember-key"
+                      checked={rememberKey}
+                      onChange={(e) => setRememberKey(e.target.checked)}
+                      className="mr-2 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500"
+                    />
+                    <label htmlFor="remember-key" className="text-sm text-slate-400">
+                      Remember my key
+                    </label>
+                  </div>
+                  <p className="text-xs text-slate-500">
+                    Get your API key from{' '}
+                    <a
+                      href="https://console.anthropic.com/settings/keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline"
+                    >
+                      console.anthropic.com
+                    </a>
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Creator Name */}
@@ -602,6 +685,11 @@ function GeneratePageContent() {
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Generating...
+                </>
+              ) : useOwnKey ? (
+                <>
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Generate Notes (Free)
                 </>
               ) : isPaid ? (
                 <>

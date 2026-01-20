@@ -375,7 +375,11 @@ function GeneratePageContent() {
             </div>
             <div>
               <p className="text-green-400 font-medium">Payment confirmed!</p>
-              <p className="text-green-400/70 text-sm">You can now generate your notes.</p>
+              <p className="text-green-400/70 text-sm">
+                {files.length === 0
+                  ? 'Please re-upload your files to generate notes.'
+                  : 'You can now generate your notes.'}
+              </p>
             </div>
           </div>
         )}

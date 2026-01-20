@@ -28,29 +28,35 @@ CourseNotes AI is an all-in-one platform that automatically generates:
 - Topic breakdown analysis
 
 ### 3. Visual Sheets
-- Auto-generated via **FLUX Dev** (high-quality image model)
-- High resolution (896x1152 PNG)
-- A3 infographic format
+- Auto-generated via **Ideogram v3** (superior text rendering)
+- High resolution infographic format
+- Accurate text and typography
 - Downloadable PNG
 - Permanently stored in Supabase Storage
 
-### 4. Custom Prompt Support
+### 4. Payment System
+- Stripe integration for secure payments
+- Promo code support (configurable discounts)
+- One-time payment per generation ($2.00)
+- Payment verification via Stripe webhooks
+
+### 5. Custom Prompt Support
 - Advanced Options toggle in generation form
 - Add personalized instructions for AI generation
 - Customize focus areas, style, and content emphasis
 
-### 5. Admin Features
+### 6. Admin Features
 - Password-protected delete functionality
 - Secure note removal with confirmation dialog
 - Cascading cleanup (images removed from storage)
 
-### 6. Public Gallery
+### 7. Public Gallery
 - Browse all notes
 - Filter by institution, course, language
 - Sort by recent/upvoted/viewed
 - Vote system (upvote/downvote)
 
-### 7. Modern UI/UX
+### 8. Modern UI/UX
 - Three.js animated hero section with floating spheres
 - Particle field background effects
 - Dark theme with gradient accents
@@ -68,7 +74,8 @@ CourseNotes AI is an all-in-one platform that automatically generates:
 | **Database** | Supabase (PostgreSQL) |
 | **Storage** | Supabase Storage |
 | **AI Notes** | Claude (user's API key) |
-| **AI Visual** | FLUX Dev (Replicate) |
+| **AI Visual** | Ideogram v3 (Replicate) |
+| **Payments** | Stripe |
 | **Markdown** | react-markdown + KaTeX |
 | **Deployment** | Vercel |
 
@@ -129,11 +136,15 @@ Create `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
-# Replicate (for FLUX Dev image generation)
+# Replicate (for Ideogram v3 image generation)
 REPLICATE_API_TOKEN=r8_your_token_here
 
 # Admin (for delete functionality)
 ADMIN_PASSWORD=your_secure_admin_password
+
+# Stripe (for payments)
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 ```
 
 ### 5. Run Development Server
@@ -167,9 +178,19 @@ git push -u origin main
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `REPLICATE_API_TOKEN`
    - `ADMIN_PASSWORD`
+   - `STRIPE_SECRET_KEY`
+   - `STRIPE_WEBHOOK_SECRET`
 4. Deploy!
 
-### 3. Custom Domain (Optional)
+### 4. Configure Stripe Webhook
+
+1. Go to [Stripe Dashboard](https://dashboard.stripe.com/webhooks)
+2. Create a new webhook endpoint
+3. Set endpoint URL to `https://your-domain.vercel.app/api/webhook/stripe`
+4. Select events: `checkout.session.completed`, `payment_intent.succeeded`
+5. Copy the webhook signing secret to `STRIPE_WEBHOOK_SECRET`
+
+### 5. Custom Domain (Optional)
 
 1. Go to Project Settings → Domains
 2. Add your custom domain

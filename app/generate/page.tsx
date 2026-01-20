@@ -1,16 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { ApiKeyStorage } from '@/lib/storage/api-key-storage';
-import { Upload, Loader2, X, Sparkles, FileText, Settings, ChevronDown, ChevronRight } from 'lucide-react';
+import { Upload, Loader2, X, Sparkles, FileText, Settings, ChevronDown, ChevronRight, CreditCard, Tag, Check } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
-export default function GeneratePage() {
+function GeneratePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [files, setFiles] = useState<File[]>([]);
   const [apiKey, setApiKey] = useState('');
   const [rememberKey, setRememberKey] = useState(true);
@@ -30,10 +38,55 @@ export default function GeneratePage() {
   const [statusMessage, setStatusMessage] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
+  // Payment state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoValidating, setPromoValidating] = useState(false);
+  const [promoResult, setPromoResult] = useState<{
+    valid: boolean;
+    discount: number;
+    finalPrice: string;
+    message: string;
+  } | null>(null);
+  const [isPaid, setIsPaid] = useState(false);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+
   useEffect(() => {
     const savedKey = ApiKeyStorage.get();
     if (savedKey) setApiKey(savedKey);
   }, []);
+
+  // Check for successful payment on return from Stripe
+  useEffect(() => {
+    const sessionId = searchParams.get('session_id');
+    const success = searchParams.get('success');
+
+    if (success === 'true' && sessionId) {
+      verifyPayment(sessionId);
+    }
+  }, [searchParams]);
+
+  const verifyPayment = async (sessionId: string) => {
+    setCheckingPayment(true);
+    try {
+      const response = await fetch('/api/verify-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      const data = await response.json();
+      if (data.paid) {
+        setIsPaid(true);
+        // Clear URL params
+        router.replace('/generate');
+      }
+    } catch (error) {
+      console.error('Payment verification error:', error);
+    } finally {
+      setCheckingPayment(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -69,12 +122,76 @@ export default function GeneratePage() {
     setFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleGenerate = async () => {
+  const validatePromoCode = async () => {
+    if (!promoCode.trim()) return;
+
+    setPromoValidating(true);
+    try {
+      const response = await fetch('/api/validate-promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promoCode: promoCode.trim() }),
+      });
+
+      const data = await response.json();
+      setPromoResult(data);
+
+      // If 100% discount, grant free access
+      if (data.valid && data.discount === 100) {
+        setIsPaid(true);
+        setShowPaymentModal(false);
+      }
+    } catch (error) {
+      console.error('Promo validation error:', error);
+      setPromoResult({ valid: false, discount: 0, finalPrice: '2.00', message: 'Error validating code' });
+    } finally {
+      setPromoValidating(false);
+    }
+  };
+
+  const handleCheckout = async () => {
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          promoCode: promoResult?.valid ? promoCode : undefined,
+          returnUrl: window.location.origin + '/generate',
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.freeAccess) {
+        setIsPaid(true);
+        setShowPaymentModal(false);
+        return;
+      }
+
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Failed to start checkout');
+    }
+  };
+
+  const handleGenerateClick = () => {
     if (files.length === 0 || !apiKey || !creatorName || !title || !courseCode || !courseName) {
       alert('Please fill in all required fields and upload at least one file');
       return;
     }
 
+    if (!isPaid) {
+      setShowPaymentModal(true);
+      return;
+    }
+
+    handleGenerate();
+  };
+
+  const handleGenerate = async () => {
     if (rememberKey) {
       ApiKeyStorage.save(apiKey);
     }
@@ -152,6 +269,19 @@ export default function GeneratePage() {
     }
   };
 
+  if (checkingPayment) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 mb-6">
+            <Loader2 className="h-8 w-8 text-blue-400 animate-spin" />
+          </div>
+          <p className="text-slate-400">Verifying payment...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -171,6 +301,19 @@ export default function GeneratePage() {
             Upload your course materials and get comprehensive notes, quizzes, and visual sheets.
           </p>
         </div>
+
+        {/* Payment Status Banner */}
+        {isPaid && (
+          <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center">
+              <Check className="h-4 w-4 text-green-400" />
+            </div>
+            <div>
+              <p className="text-green-400 font-medium">Payment confirmed!</p>
+              <p className="text-green-400/70 text-sm">You can now generate your notes.</p>
+            </div>
+          </div>
+        )}
 
         <Card className="bg-slate-900/50 border-slate-800">
           <CardHeader className="border-b border-slate-800">
@@ -450,7 +593,7 @@ export default function GeneratePage() {
 
             {/* Generate Button */}
             <Button
-              onClick={handleGenerate}
+              onClick={handleGenerateClick}
               disabled={isGenerating}
               className="w-full py-6 text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 border-0"
               size="lg"
@@ -460,10 +603,15 @@ export default function GeneratePage() {
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Generating...
                 </>
-              ) : (
+              ) : isPaid ? (
                 <>
                   <Sparkles className="mr-2 h-5 w-5" />
                   Generate Notes
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-5 w-5" />
+                  Continue to Payment ($2.00)
                 </>
               )}
             </Button>
@@ -486,6 +634,130 @@ export default function GeneratePage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Payment Modal */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <CreditCard className="h-5 w-5 text-blue-400" />
+              Complete Your Purchase
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              Pay once to generate comprehensive notes, quizzes, and visual summaries.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* Price Display */}
+            <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-300">Note Generation</span>
+                <div className="text-right">
+                  {promoResult?.valid && promoResult.discount > 0 ? (
+                    <>
+                      <span className="text-slate-500 line-through text-sm mr-2">$2.00</span>
+                      <span className="text-2xl font-bold text-white">${promoResult.finalPrice}</span>
+                    </>
+                  ) : (
+                    <span className="text-2xl font-bold text-white">$2.00</span>
+                  )}
+                </div>
+              </div>
+              {promoResult?.valid && (
+                <div className="mt-2 text-sm text-green-400">
+                  {promoResult.message}
+                </div>
+              )}
+            </div>
+
+            {/* Promo Code */}
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                <Tag className="h-4 w-4 inline mr-1" />
+                Promo Code
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  value={promoCode}
+                  onChange={(e) => {
+                    setPromoCode(e.target.value.toUpperCase());
+                    setPromoResult(null);
+                  }}
+                  placeholder="Enter promo code"
+                  className="flex-1 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                />
+                <Button
+                  onClick={validatePromoCode}
+                  disabled={promoValidating || !promoCode.trim()}
+                  variant="outline"
+                  className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
+                >
+                  {promoValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Apply'}
+                </Button>
+              </div>
+              {promoResult && !promoResult.valid && (
+                <p className="mt-2 text-sm text-red-400">{promoResult.message}</p>
+              )}
+            </div>
+
+            {/* What's Included */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-300">What&apos;s included:</p>
+              <ul className="space-y-2 text-sm text-slate-400">
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-400" />
+                  Comprehensive course notes in Markdown
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-400" />
+                  Interactive quiz with explanations
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-400" />
+                  AI-generated visual summary
+                </li>
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-400" />
+                  Downloadable PDF export
+                </li>
+              </ul>
+            </div>
+
+            {/* Checkout Button */}
+            <Button
+              onClick={handleCheckout}
+              className="w-full py-5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 border-0"
+            >
+              <CreditCard className="mr-2 h-5 w-5" />
+              {promoResult?.valid && promoResult.discount === 100
+                ? 'Get Free Access'
+                : `Pay $${promoResult?.valid ? promoResult.finalPrice : '2.00'}`}
+            </Button>
+
+            <p className="text-xs text-center text-slate-500">
+              Secure payment powered by Stripe
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+export default function GeneratePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 mb-6">
+            <Loader2 className="h-8 w-8 text-blue-400 animate-spin" />
+          </div>
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      </div>
+    }>
+      <GeneratePageContent />
+    </Suspense>
   );
 }

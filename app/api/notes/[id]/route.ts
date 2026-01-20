@@ -37,7 +37,8 @@ export async function GET(
   }
 
   // Increment view count
-  await supabase.rpc('increment_view_count', { note_uuid: id });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (supabase as any).rpc('increment_view_count', { note_uuid: id });
 
   return NextResponse.json(data);
 }
@@ -69,11 +70,12 @@ export async function DELETE(
     }
 
     // Get the note first to retrieve the visual URL for cleanup
-    const { data: note, error: fetchError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: note, error: fetchError } = await (supabase as any)
       .from('notes')
       .select('visual_image_url')
       .eq('id', id)
-      .single();
+      .single() as { data: { visual_image_url: string | null } | null; error: unknown };
 
     if (fetchError) {
       return NextResponse.json(
@@ -83,7 +85,7 @@ export async function DELETE(
     }
 
     // Delete associated image from storage if it exists
-    if (note.visual_image_url) {
+    if (note?.visual_image_url) {
       try {
         await deleteImageFromStorage(note.visual_image_url);
       } catch (storageError) {

@@ -8,6 +8,17 @@ function getUserIdentifier(request: NextRequest): string {
   return crypto.createHash('sha256').update(ip).digest('hex');
 }
 
+// Type for vote data
+interface VoteData {
+  id: string;
+  vote_type: 'up' | 'down';
+}
+
+interface NoteData {
+  upvotes: number;
+  downvotes: number;
+}
+
 export async function POST(request: NextRequest) {
   const { noteId, voteType } = await request.json();
 
@@ -18,24 +29,27 @@ export async function POST(request: NextRequest) {
   const userIdentifier = getUserIdentifier(request);
 
   // Check if user already voted
-  const { data: existingVote } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: existingVote } = await (supabase as any)
     .from('votes')
     .select('id, vote_type')
     .eq('note_id', noteId)
     .eq('user_identifier', userIdentifier)
-    .single();
+    .single() as { data: VoteData | null };
 
   if (existingVote) {
     // Update existing vote
     if (existingVote.vote_type !== voteType) {
-      await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
         .from('votes')
         .update({ vote_type: voteType })
         .eq('id', existingVote.id);
 
       // Update note counts
       const increment = voteType === 'up' ? 1 : -1;
-      await supabase.rpc('update_vote_counts', {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).rpc('update_vote_counts', {
         note_uuid: noteId,
         upvotes_delta: increment,
         downvotes_delta: -increment,
@@ -43,32 +57,36 @@ export async function POST(request: NextRequest) {
     }
   } else {
     // Insert new vote
-    await supabase.from('votes').insert({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from('votes').insert({
       note_id: noteId,
       user_identifier: userIdentifier,
       vote_type: voteType,
     });
 
     // Update note counts
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = supabase as any;
     if (voteType === 'up') {
-      await supabase
+      await db
         .from('notes')
-        .update({ upvotes: supabase.raw('upvotes + 1') })
+        .update({ upvotes: db.raw('upvotes + 1') })
         .eq('id', noteId);
     } else {
-      await supabase
+      await db
         .from('notes')
-        .update({ downvotes: supabase.raw('downvotes + 1') })
+        .update({ downvotes: db.raw('downvotes + 1') })
         .eq('id', noteId);
     }
   }
 
   // Fetch updated counts
-  const { data: note } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: note } = await (supabase as any)
     .from('notes')
     .select('upvotes, downvotes')
     .eq('id', noteId)
-    .single();
+    .single() as { data: NoteData | null };
 
   return NextResponse.json({
     success: true,

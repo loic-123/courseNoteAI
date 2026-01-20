@@ -10,21 +10,17 @@ export async function generateVisualWithReplicate(
   console.log('Prompt length:', prompt.length);
 
   try {
-    // Use FLUX Dev for higher quality visuals with high resolution
+    // Use Ideogram v3 for superior text rendering and infographic quality
+    // Ideogram is specifically designed for accurate text in images
     const output = await replicate.run(
-      'black-forest-labs/flux-dev',
+      'ideogram-ai/ideogram-v3-balanced',
       {
         input: {
           prompt: prompt,
-          go_fast: false,
-          guidance: 3.5,
-          num_outputs: 1,
           aspect_ratio: '3:4',
-          output_format: 'png',
-          output_quality: 100,
-          num_inference_steps: 50,
-          width: 896,
-          height: 1152,
+          style_type: 'design',
+          magic_prompt_option: 'on',
+          negative_prompt: 'blurry, low quality, distorted text, misspelled words, illegible, pixelated',
         },
       }
     );

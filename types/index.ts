@@ -42,16 +42,35 @@ export interface GenerationParams {
   language: Language;
 }
 
-// Note Types
+// Course with institutions for API response
+interface CourseWithInstitutions {
+  id: string;
+  code: string;
+  name: string;
+  institutions?: {
+    id: string;
+    name: string;
+    short_name: string;
+  } | {
+    id: string;
+    name: string;
+    short_name: string;
+  }[];
+}
+
+// Note Types - matches API response structure
 export interface Note {
   id: string;
   title: string;
-  course: {
+  // API returns 'courses' with nested 'institutions'
+  courses?: CourseWithInstitutions | CourseWithInstitutions[];
+  // Transformed fields for client use
+  course?: {
     id: string;
     code: string;
     name: string;
   };
-  institution: {
+  institution?: {
     id: string;
     name: string;
     short_name: string;

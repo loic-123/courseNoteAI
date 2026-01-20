@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
     // Step 2: Create or get course
     let finalCourseId = courseId;
     if (!finalCourseId && courseCode && courseName) {
-      const { data: existingCourse } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: existingCourse } = await (supabase as any)
         .from('courses')
         .select('id')
         .eq('institution_id', institutionId)
@@ -77,7 +78,8 @@ export async function POST(request: NextRequest) {
       if (existingCourse) {
         finalCourseId = existingCourse.id;
       } else {
-        const { data: newCourse, error } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: newCourse, error } = await (supabase as any)
           .from('courses')
           .insert({
             institution_id: institutionId,
@@ -107,7 +109,8 @@ export async function POST(request: NextRequest) {
     // Step 3: Create module if provided
     let finalModuleId = moduleId;
     if (!finalModuleId && moduleName) {
-      const { data: newModule, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: newModule, error } = await (supabase as any)
         .from('modules')
         .insert({
           course_id: finalCourseId,
@@ -171,7 +174,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 6: Store in database
-    const { data: note, error: insertError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: note, error: insertError } = await (supabase as any)
       .from('notes')
       .insert({
         course_id: finalCourseId,

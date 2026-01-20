@@ -45,7 +45,27 @@ export default function NotePage() {
         const response = await fetch(`/api/notes/${id}`);
         if (!response.ok) throw new Error('Note not found');
         const data = await response.json();
-        setNote(data);
+
+        // Transform the API response to match the Note type
+        // API returns: courses { id, code, name, institutions { id, name, short_name } }
+        const courseData = data.courses;
+        const institutionData = courseData?.institutions;
+
+        const transformedNote: Note = {
+          ...data,
+          course: courseData ? {
+            id: courseData.id,
+            code: courseData.code,
+            name: courseData.name,
+          } : undefined,
+          institution: institutionData ? {
+            id: institutionData.id,
+            name: institutionData.name,
+            short_name: institutionData.short_name,
+          } : undefined,
+        };
+
+        setNote(transformedNote);
       } catch (error) {
         console.error('Error fetching note:', error);
       } finally {

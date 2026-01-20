@@ -637,8 +637,8 @@ function GeneratePageContent() {
 
       {/* Payment Modal */}
       <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md">
-          <DialogHeader>
+        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md p-6 sm:p-8">
+          <DialogHeader className="space-y-3">
             <DialogTitle className="flex items-center gap-2 text-xl">
               <CreditCard className="h-5 w-5 text-blue-400" />
               Complete Your Purchase
@@ -648,7 +648,7 @@ function GeneratePageContent() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 py-4">
+          <div className="space-y-6 pt-4">
             {/* Price Display */}
             <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700">
               <div className="flex justify-between items-center">

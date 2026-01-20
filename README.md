@@ -28,15 +28,33 @@ CourseNotes AI is an all-in-one platform that automatically generates:
 - Topic breakdown analysis
 
 ### 3. Visual Sheets
-- Auto-generated via Ideogram v3 Turbo
+- Auto-generated via **FLUX Dev** (high-quality image model)
+- High resolution (896x1152 PNG)
 - A3 infographic format
 - Downloadable PNG
+- Permanently stored in Supabase Storage
 
-### 4. Public Gallery
+### 4. Custom Prompt Support
+- Advanced Options toggle in generation form
+- Add personalized instructions for AI generation
+- Customize focus areas, style, and content emphasis
+
+### 5. Admin Features
+- Password-protected delete functionality
+- Secure note removal with confirmation dialog
+- Cascading cleanup (images removed from storage)
+
+### 6. Public Gallery
 - Browse all notes
 - Filter by institution, course, language
 - Sort by recent/upvoted/viewed
-- Vote system (👍👎)
+- Vote system (upvote/downvote)
+
+### 7. Modern UI/UX
+- Three.js animated hero section with floating spheres
+- Particle field background effects
+- Dark theme with gradient accents
+- Responsive design for all devices
 
 ---
 
@@ -46,10 +64,11 @@ CourseNotes AI is an all-in-one platform that automatically generates:
 |-------|------------|
 | **Frontend/Backend** | Next.js 14 (App Router) + TypeScript |
 | **Styling** | Tailwind CSS + shadcn/ui |
+| **3D Graphics** | Three.js + React Three Fiber + Drei |
 | **Database** | Supabase (PostgreSQL) |
 | **Storage** | Supabase Storage |
-| **AI Notes** | Claude Sonnet 4.5 (user's API key) |
-| **AI Visual** | Ideogram v3 Turbo (Replicate) |
+| **AI Notes** | Claude (user's API key) |
+| **AI Visual** | FLUX Dev (Replicate) |
 | **Markdown** | react-markdown + KaTeX |
 | **Deployment** | Vercel |
 
@@ -110,8 +129,11 @@ Create `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
-# Replicate
+# Replicate (for FLUX Dev image generation)
 REPLICATE_API_TOKEN=r8_your_token_here
+
+# Admin (for delete functionality)
+ADMIN_PASSWORD=your_secure_admin_password
 ```
 
 ### 5. Run Development Server
@@ -144,6 +166,7 @@ git push -u origin main
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `REPLICATE_API_TOKEN`
+   - `ADMIN_PASSWORD`
 4. Deploy!
 
 ### 3. Custom Domain (Optional)
@@ -189,7 +212,7 @@ git push -u origin main
 │   │  • modules                │   │  └─ Génération prompt visuel│     │
 │   │  • notes (table principale)│  │                             │     │
 │   │  • votes                  │   │  Replicate API              │     │
-│   │  • tags                   │   │  └─ FLUX Schnell (images)   │     │
+│   │  • tags                   │   │  └─ FLUX Dev (images)   │     │
 │   │  • notes_tags             │   └─────────────────────────────┘     │
 │   └───────────────────────────┘                                        │
 │                                                                         │
@@ -202,6 +225,8 @@ git push -u origin main
 │   COMPOSANTS UI                                                         │
 │   ├── Navbar          → Navigation globale                             │
 │   ├── QuizContainer   → Interface quiz interactive                     │
+│   ├── HeroScene       → Animation Three.js (spheres + particles)       │
+│   ├── Dialog          → Modal de confirmation (suppression)            │
 │   ├── shadcn/ui       → Composants UI (Button, Card, Tabs...)          │
 │   └── react-markdown  → Rendu markdown + KaTeX (LaTeX)                 │
 │                                                                         │
@@ -355,7 +380,7 @@ USER                           FRONTEND                        BACKEND
   │                               │                    ┌──────────┴──────────┐
   │                               │                    │ ÉTAPE 4: Replicate  │
   │                               │                    │ └─ Generate image   │
-  │                               │                    │    (FLUX Schnell)   │
+  │                               │                    │    (FLUX Dev)   │
   │                               │                    └──────────┬──────────┘
   │                               │                               │
   │                               │                    ┌──────────┴──────────┐
@@ -504,7 +529,8 @@ CourseNotesAI/
 ├── components/
 │   ├── layout/Navbar.tsx          # Navigation
 │   ├── quiz/QuizContainer.tsx     # Quiz interactif
-│   └── ui/                        # Composants shadcn/ui
+│   ├── three/HeroScene.tsx        # Animation 3D Three.js
+│   └── ui/                        # Composants shadcn/ui (+ Dialog)
 ├── lib/
 │   ├── ai/
 │   │   ├── claude.ts              # Intégration Claude API
@@ -528,7 +554,7 @@ CourseNotesAI/
 ### 1. Generate Notes
 
 1. Visit `/generate`
-2. Upload PDF/DOCX/Image
+2. Upload PDF/DOCX/Image (multiple files supported)
 3. Enter Claude API key (saved in localStorage)
 4. Configure settings:
    - Detail level (1-10)
@@ -536,12 +562,20 @@ CourseNotesAI/
    - Length (short/medium/long)
    - Language (EN/FR)
    - Use metaphors (toggle)
-5. Fill course details
-6. Click "Generate"
-7. Wait ~2-3 minutes
-8. Redirected to note detail page
+5. Fill course details (course code, name, your name, title)
+6. (Optional) Expand "Advanced Options" to add custom instructions
+7. Click "Generate"
+8. Wait for AI processing
+9. Redirected to note detail page
 
-### 2. Take Quiz
+### 2. Delete Notes (Admin)
+
+1. Go to note detail page
+2. Click red "Delete" button
+3. Enter admin password in confirmation dialog
+4. Confirm deletion (note + image permanently removed)
+
+### 3. Take Quiz
 
 1. Go to note detail page
 2. Click "QCM" tab
@@ -551,7 +585,7 @@ CourseNotesAI/
 6. Review wrong answers with explanations
 7. Retry if needed
 
-### 3. Browse Gallery
+### 4. Browse Gallery
 
 1. Visit `/gallery`
 2. Filter by language, sort by recent/upvotes/views
@@ -667,7 +701,8 @@ Built with:
 - [Next.js](https://nextjs.org)
 - [Supabase](https://supabase.com)
 - [Claude AI](https://anthropic.com)
-- [Replicate](https://replicate.com)
+- [Replicate](https://replicate.com) (FLUX Dev model)
+- [Three.js](https://threejs.org) + [React Three Fiber](https://docs.pmnd.rs/react-three-fiber)
 - [shadcn/ui](https://ui.shadcn.com)
 - [Tailwind CSS](https://tailwindcss.com)
 

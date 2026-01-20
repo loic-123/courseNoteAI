@@ -52,11 +52,33 @@ function GeneratePageContent() {
   const [isPaid, setIsPaid] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
 
+  // Load saved API key and form data
   useEffect(() => {
     const savedKey = ApiKeyStorage.get();
     if (savedKey) {
       setApiKey(savedKey);
       setUseOwnKey(true);
+    }
+
+    // Restore form data from sessionStorage (after Stripe redirect)
+    const savedFormData = sessionStorage.getItem('generateFormData');
+    if (savedFormData) {
+      try {
+        const data = JSON.parse(savedFormData);
+        setCreatorName(data.creatorName || '');
+        setTitle(data.title || '');
+        setCourseCode(data.courseCode || '');
+        setCourseName(data.courseName || '');
+        setDetailLevel(data.detailLevel || 8);
+        setUseMetaphors(data.useMetaphors ?? true);
+        setTechnicalLevel(data.technicalLevel || 'intermediate');
+        setLength(data.length || 'medium');
+        setLanguage(data.language || 'en');
+        setCustomPrompt(data.customPrompt || '');
+        setUseOwnKey(false); // They were going to pay
+      } catch (e) {
+        console.error('Failed to restore form data:', e);
+      }
     }
   }, []);
 
@@ -82,7 +104,8 @@ function GeneratePageContent() {
       const data = await response.json();
       if (data.paid) {
         setIsPaid(true);
-        // Clear URL params
+        // Clear saved form data and URL params
+        sessionStorage.removeItem('generateFormData');
         router.replace('/generate');
       }
     } catch (error) {
@@ -90,6 +113,23 @@ function GeneratePageContent() {
     } finally {
       setCheckingPayment(false);
     }
+  };
+
+  // Save form data before going to Stripe
+  const saveFormData = () => {
+    const formData = {
+      creatorName,
+      title,
+      courseCode,
+      courseName,
+      detailLevel,
+      useMetaphors,
+      technicalLevel,
+      length,
+      language,
+      customPrompt,
+    };
+    sessionStorage.setItem('generateFormData', JSON.stringify(formData));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,6 +195,9 @@ function GeneratePageContent() {
 
   const handleCheckout = async () => {
     try {
+      // Save form data before redirecting to Stripe
+      saveFormData();
+
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -169,6 +212,7 @@ function GeneratePageContent() {
       if (data.freeAccess) {
         setIsPaid(true);
         setShowPaymentModal(false);
+        sessionStorage.removeItem('generateFormData'); // No redirect needed
         return;
       }
 

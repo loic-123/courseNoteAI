@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app:*)",
+      "Bash(dir:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout /t 5)",
+      "Bash(curl:*)",
+      "Bash(select -Last 60)",
+      "Bash(timeout /t 8)",
+      "Bash(taskkill:*)",
+      "Bash(timeout /t 1)",
+      "Bash(npm uninstall:*)",
+      "Bash(timeout /t 5 /nobreak)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command \"Stop-Process -Name node -Force\")",
+      "Bash(netstat:*)",
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(npx tsx:*)",
+      "Bash(npx tsc:*)",
+      "Bash(del /F \"D:\\\\loic\\\\PERSO\\\\projects\\\\CourseNotesAI\\\\.next\\\\dev\\\\lock\")",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

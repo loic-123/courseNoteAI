@@ -1,0 +1,339 @@
+/* Professional Notes Styling */
+.notes-content {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #1f2937;
+  max-width: 100%;
+}
+
+/* Headings */
+.notes-content h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e40af;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 3px solid #3b82f6;
+  line-height: 1.3;
+}
+
+.notes-content h1:first-child {
+  margin-top: 0;
+}
+
+.notes-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #93c5fd;
+  line-height: 1.4;
+}
+
+.notes-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1d4ed8;
+  margin-top: 1.75rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.notes-content h4 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #2563eb;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+/* Paragraphs */
+.notes-content p {
+  margin-bottom: 1.25rem;
+  text-align: justify;
+  hyphens: auto;
+}
+
+/* Lists */
+.notes-content ul,
+.notes-content ol {
+  margin-top: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.notes-content ul {
+  list-style-type: disc;
+}
+
+.notes-content ol {
+  list-style-type: decimal;
+}
+
+.notes-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+  padding-left: 0.25rem;
+}
+
+.notes-content li::marker {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.notes-content ul ul,
+.notes-content ol ol,
+.notes-content ul ol,
+.notes-content ol ul {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Strong and emphasis */
+.notes-content strong {
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.notes-content em {
+  font-style: italic;
+  color: #4b5563;
+}
+
+/* Links */
+.notes-content a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.notes-content a:hover {
+  color: #1d4ed8;
+}
+
+/* Code */
+.notes-content code {
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.875em;
+  background-color: #f1f5f9;
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+}
+
+.notes-content pre {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  padding: 1.25rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1.5rem 0;
+  border: 1px solid #334155;
+}
+
+.notes-content pre code {
+  background: transparent;
+  padding: 0;
+  border: none;
+  color: inherit;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+/* Blockquotes */
+.notes-content blockquote {
+  border-left: 4px solid #3b82f6;
+  background-color: #eff6ff;
+  padding: 1rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  color: #1e40af;
+}
+
+.notes-content blockquote p {
+  margin-bottom: 0;
+}
+
+.notes-content blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* Tables */
+.notes-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.9375rem;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.notes-content th {
+  background-color: #1e40af;
+  color: white;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.875rem 1rem;
+  border: 1px solid #1e3a8a;
+}
+
+.notes-content td {
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  vertical-align: top;
+}
+
+.notes-content tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.notes-content tr:hover {
+  background-color: #eff6ff;
+}
+
+/* Horizontal rules */
+.notes-content hr {
+  border: none;
+  border-top: 2px solid #e2e8f0;
+  margin: 2.5rem 0;
+}
+
+/* Images */
+.notes-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1.5rem auto;
+  display: block;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Math equations (KaTeX) */
+.notes-content .katex-display {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background-color: #fafafa;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.notes-content .katex {
+  font-size: 1.1em;
+}
+
+/* Task lists / Checkboxes */
+.notes-content input[type="checkbox"] {
+  margin-right: 0.5rem;
+  width: 1rem;
+  height: 1rem;
+  accent-color: #3b82f6;
+}
+
+/* Definition lists */
+.notes-content dl {
+  margin: 1.5rem 0;
+}
+
+.notes-content dt {
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-top: 1rem;
+}
+
+.notes-content dd {
+  margin-left: 1.5rem;
+  margin-top: 0.25rem;
+  color: #4b5563;
+}
+
+/* Abbreviations */
+.notes-content abbr {
+  text-decoration: underline dotted;
+  cursor: help;
+}
+
+/* Superscript and subscript */
+.notes-content sup,
+.notes-content sub {
+  font-size: 0.75em;
+}
+
+/* Footnotes */
+.notes-content .footnotes {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Key insights / Important boxes */
+.notes-content > p:has(strong:first-child) {
+  background-color: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 1rem 1.25rem;
+  border-radius: 0 8px 8px 0;
+  margin: 1.5rem 0;
+}
+
+/* Metaphor styling */
+.notes-content > p:has(em:first-child) {
+  background-color: #f0fdf4;
+  border-left: 4px solid #22c55e;
+  padding: 1rem 1.25rem;
+  border-radius: 0 8px 8px 0;
+  margin: 1.5rem 0;
+  font-style: normal;
+}
+
+/* Print styles */
+@media print {
+  .notes-content {
+    font-size: 11pt;
+    line-height: 1.6;
+    color: black;
+  }
+
+  .notes-content h1 {
+    font-size: 18pt;
+    page-break-after: avoid;
+  }
+
+  .notes-content h2 {
+    font-size: 14pt;
+    page-break-after: avoid;
+  }
+
+  .notes-content h3 {
+    font-size: 12pt;
+    page-break-after: avoid;
+  }
+
+  .notes-content pre {
+    background-color: #f3f4f6;
+    color: black;
+    border: 1px solid #d1d5db;
+  }
+
+  .notes-content blockquote {
+    border-left-color: #6b7280;
+    background-color: #f9fafb;
+  }
+
+  .notes-content table {
+    page-break-inside: avoid;
+  }
+
+  .notes-content img {
+    max-width: 80%;
+    page-break-inside: avoid;
+  }
+}

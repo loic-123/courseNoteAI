@@ -12,7 +12,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import './notes-styles.css';
-import { ThumbsUp, ThumbsDown, Download, Share2, Eye, FileText, Loader2, ImageIcon, Trash2 } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Download, Share2, Eye, FileText, Loader2, ImageIcon, Trash2, GraduationCap } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Note } from '@/types';
@@ -131,17 +131,13 @@ export default function NotePage() {
     setGeneratingPdf(true);
 
     try {
-      // Dynamic imports for PDF generation libraries
-      console.log('Loading PDF libraries...');
       const [jsPDFModule, html2canvasModule] = await Promise.all([
         import('jspdf'),
         import('html2canvas')
       ]);
       const jsPDF = jsPDFModule.default;
       const html2canvas = html2canvasModule.default;
-      console.log('PDF libraries loaded successfully');
 
-      // Create a temporary container for PDF rendering
       const pdfContainer = document.createElement('div');
       pdfContainer.style.cssText = `
         position: absolute;
@@ -152,7 +148,6 @@ export default function NotePage() {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       `;
 
-      // Professional PDF Header
       const header = document.createElement('div');
       header.style.cssText = `
         padding: 40px 50px 30px 50px;
@@ -176,22 +171,14 @@ export default function NotePage() {
       `;
       pdfContainer.appendChild(header);
 
-      // Clone the actual rendered content (which includes KaTeX rendered formulas)
       const notesElement = notesContentRef.current;
       let contentClone: HTMLElement;
 
       if (notesElement) {
-        // Clone the rendered content which has KaTeX already processed
         contentClone = notesElement.cloneNode(true) as HTMLElement;
-        console.log('Cloned rendered notes content with KaTeX');
       } else {
-        // Fallback: render markdown content using a temporary element
-        console.log('Notes ref not available, creating fallback content');
         contentClone = document.createElement('div');
         contentClone.className = 'notes-content';
-
-        // For fallback, we need to parse markdown - basic conversion
-        // Note: This won't render LaTeX, but it's a fallback
         const basicHtml = note.notes_markdown
           .replace(/^### (.*$)/gim, '<h3>$1</h3>')
           .replace(/^## (.*$)/gim, '<h2>$1</h2>')
@@ -205,7 +192,6 @@ export default function NotePage() {
         contentClone.innerHTML = `<p>${basicHtml}</p>`;
       }
 
-      // Apply PDF-optimized styling to content
       const contentWrapper = document.createElement('div');
       contentWrapper.style.cssText = `
         padding: 30px 50px 40px 50px;
@@ -214,12 +200,10 @@ export default function NotePage() {
         color: #1f2937;
       `;
 
-      // Style the cloned content for PDF
       contentClone.style.cssText = `
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       `;
 
-      // Apply specific PDF styles to elements
       contentClone.querySelectorAll('h1').forEach((h) => {
         (h as HTMLElement).style.cssText = `
           font-size: 16pt; font-weight: 700; margin: 28px 0 14px 0;
@@ -299,12 +283,8 @@ export default function NotePage() {
       contentClone.querySelectorAll('strong').forEach((s) => {
         (s as HTMLElement).style.cssText = `font-weight: 700; color: #1e3a8a;`;
       });
-
-      // Style KaTeX elements for better PDF rendering
       contentClone.querySelectorAll('.katex').forEach((katex) => {
-        (katex as HTMLElement).style.cssText = `
-          font-size: 1em;
-        `;
+        (katex as HTMLElement).style.cssText = `font-size: 1em;`;
       });
       contentClone.querySelectorAll('.katex-display').forEach((katex) => {
         (katex as HTMLElement).style.cssText = `
@@ -317,7 +297,6 @@ export default function NotePage() {
       contentWrapper.appendChild(contentClone);
       pdfContainer.appendChild(contentWrapper);
 
-      // Footer
       const footer = document.createElement('div');
       footer.style.cssText = `
         padding: 15px 50px 30px 50px;
@@ -336,13 +315,8 @@ export default function NotePage() {
       pdfContainer.appendChild(footer);
 
       document.body.appendChild(pdfContainer);
-      console.log('PDF container added to DOM');
-
-      // Wait for fonts and KaTeX styles to load
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Generate canvas with higher quality
-      console.log('Generating canvas...');
       const canvas = await html2canvas(pdfContainer, {
         scale: 2,
         useCORS: true,
@@ -350,30 +324,23 @@ export default function NotePage() {
         backgroundColor: '#ffffff',
         windowWidth: 794,
       });
-      console.log('Canvas generated:', canvas.width, 'x', canvas.height);
 
-      // Create PDF with proper pagination
-      console.log('Creating PDF with pagination...');
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
       });
 
-      const pdfWidth = 210; // A4 width in mm
-      const pdfHeight = 297; // A4 height in mm
-      const margin = 10; // margin in mm
+      const pdfWidth = 210;
+      const pdfHeight = 297;
+      const margin = 10;
       const contentWidth = pdfWidth - (margin * 2);
       const contentHeight = pdfHeight - (margin * 2);
 
-      // Calculate dimensions
       const imgWidth = contentWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       const totalPages = Math.ceil(imgHeight / contentHeight);
 
-      console.log('PDF dimensions:', { imgWidth, imgHeight, contentHeight, totalPages });
-
-      // Split canvas into pages
       const pageCanvas = document.createElement('canvas');
       const pageCtx = pageCanvas.getContext('2d')!;
       const scaleFactor = canvas.width / imgWidth;
@@ -387,11 +354,9 @@ export default function NotePage() {
           pdf.addPage();
         }
 
-        // Calculate source position
         const sourceY = page * pageHeightPx;
         const sourceHeight = Math.min(pageHeightPx, canvas.height - sourceY);
 
-        // Clear and draw page portion
         pageCtx.fillStyle = '#ffffff';
         pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
         pageCtx.drawImage(
@@ -400,31 +365,22 @@ export default function NotePage() {
           0, 0, canvas.width, sourceHeight
         );
 
-        // Add to PDF
         const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.92);
         const actualPageHeight = (sourceHeight / scaleFactor);
         pdf.addImage(pageImgData, 'JPEG', margin, margin, imgWidth, actualPageHeight);
 
-        // Add page number
         pdf.setFontSize(9);
         pdf.setTextColor(150);
         pdf.text(`Page ${page + 1} of ${totalPages}`, pdfWidth / 2, pdfHeight - 5, { align: 'center' });
       }
 
-      console.log('Total pages:', totalPages);
-
-      // Save PDF
       const fileName = note.title
         .replace(/[^a-z0-9\s]/gi, '')
         .replace(/\s+/g, '_')
         .toLowerCase();
 
-      console.log('Saving PDF as:', `${fileName}_notes.pdf`);
       pdf.save(`${fileName}_notes.pdf`);
-
-      // Cleanup
       document.body.removeChild(pdfContainer);
-      console.log('PDF generation complete!');
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -435,10 +391,12 @@ export default function NotePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-500">Loading note...</p>
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30 mb-6">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
+          </div>
+          <p className="text-slate-400">Loading note...</p>
         </div>
       </div>
     );
@@ -446,10 +404,13 @@ export default function NotePage() {
 
   if (!note) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold mb-2 text-slate-800">Note Not Found</h1>
-          <p className="text-slate-500">The note you're looking for doesn't exist.</p>
+          <div className="inline-flex items-center justify-center h-20 w-20 rounded-full bg-gradient-to-br from-red-500/20 to-orange-500/20 border border-red-500/30 mb-6">
+            <FileText className="h-10 w-10 text-red-400" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2 text-white">Note Not Found</h1>
+          <p className="text-slate-400">The note you&apos;re looking for doesn&apos;t exist.</p>
         </div>
       </div>
     );
@@ -459,41 +420,43 @@ export default function NotePage() {
   const institution = note.institution;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-5xl mx-auto px-6 py-10">
+    <div className="min-h-screen bg-slate-950">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Professional Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 mb-8 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6">
-            <h1 className="text-3xl font-bold text-white mb-2">{note.title}</h1>
+        <div className="bg-slate-900/50 rounded-2xl border border-slate-800 mb-8 overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-6">
+            <h1 className="text-3xl font-bold text-white mb-3">{note.title}</h1>
             <div className="flex flex-wrap items-center gap-3 text-blue-100">
-              <span className="font-semibold">{course?.code}</span>
-              <span>•</span>
-              <span>{course?.name}</span>
+              <span className="px-3 py-1 bg-white/10 rounded-full font-semibold text-sm">{course?.code}</span>
+              <span className="text-blue-200">{course?.name}</span>
               {institution && (
                 <>
-                  <span>•</span>
-                  <span>{institution.short_name}</span>
+                  <span className="text-blue-300">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <GraduationCap className="h-4 w-4" />
+                    <span>{institution.short_name}</span>
+                  </div>
                 </>
               )}
             </div>
           </div>
-          <div className="px-8 py-4 bg-slate-50 border-t border-slate-100">
+          <div className="px-8 py-4 bg-slate-900/50 border-t border-slate-800">
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4 text-sm text-slate-600">
-                <span>By <strong>{note.creator_name}</strong></span>
-                <span>•</span>
+              <div className="flex items-center gap-4 text-sm text-slate-400">
+                <span>By <strong className="text-white">{note.creator_name}</strong></span>
+                <span className="text-slate-600">•</span>
                 <span>{new Date(note.created_at).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric'
                 })}</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handleVote('up')}
-                  className="h-9"
+                  className="h-9 bg-slate-800 border-slate-700 hover:bg-slate-700 text-white"
                 >
                   <ThumbsUp className="h-4 w-4 mr-1.5" />
                   {note.upvotes}
@@ -502,12 +465,12 @@ export default function NotePage() {
                   variant="outline"
                   size="sm"
                   onClick={() => handleVote('down')}
-                  className="h-9"
+                  className="h-9 bg-slate-800 border-slate-700 hover:bg-slate-700 text-white"
                 >
                   <ThumbsDown className="h-4 w-4 mr-1.5" />
                   {note.downvotes}
                 </Button>
-                <div className="flex items-center gap-1.5 px-3 h-9 text-sm text-slate-500 bg-slate-100 rounded-md">
+                <div className="flex items-center gap-1.5 px-3 h-9 text-sm text-slate-400 bg-slate-800 rounded-md border border-slate-700">
                   <Eye className="h-4 w-4" />
                   {note.views_count}
                 </div>
@@ -515,7 +478,7 @@ export default function NotePage() {
                   variant="outline"
                   size="sm"
                   onClick={handleShare}
-                  className="h-9"
+                  className="h-9 bg-slate-800 border-slate-700 hover:bg-slate-700 text-white"
                 >
                   <Share2 className="h-4 w-4 mr-1.5" />
                   Share
@@ -524,7 +487,7 @@ export default function NotePage() {
                   size="sm"
                   onClick={handleDownloadPDF}
                   disabled={generatingPdf}
-                  className="h-9 bg-blue-600 hover:bg-blue-700"
+                  className="h-9 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 border-0"
                 >
                   {generatingPdf ? (
                     <>
@@ -542,7 +505,7 @@ export default function NotePage() {
                   variant="outline"
                   size="sm"
                   onClick={openDeleteDialog}
-                  className="h-9 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                  className="h-9 bg-red-500/10 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30 text-red-400"
                 >
                   <Trash2 className="h-4 w-4 mr-1.5" />
                   Delete
@@ -554,23 +517,23 @@ export default function NotePage() {
 
         {/* Content Tabs */}
         <Tabs defaultValue="notes" className="w-full">
-          <TabsList className="w-full justify-start bg-white border border-slate-200 rounded-lg p-1 mb-6 h-auto">
+          <TabsList className="w-full justify-start bg-slate-900/50 border border-slate-800 rounded-xl p-1.5 mb-6 h-auto">
             <TabsTrigger
               value="notes"
-              className="flex-1 py-3 text-base font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md"
+              className="flex-1 py-3 text-base font-medium text-slate-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg transition-all"
             >
               <FileText className="h-4 w-4 mr-2" />
               Course Notes
             </TabsTrigger>
             <TabsTrigger
               value="qcm"
-              className="flex-1 py-3 text-base font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md"
+              className="flex-1 py-3 text-base font-medium text-slate-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg transition-all"
             >
-              ✅ Quiz (QCM)
+              Quiz (QCM)
             </TabsTrigger>
             <TabsTrigger
               value="visual"
-              className="flex-1 py-3 text-base font-medium data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-md"
+              className="flex-1 py-3 text-base font-medium text-slate-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg transition-all"
             >
               <ImageIcon className="h-4 w-4 mr-2" />
               Visual Summary
@@ -579,7 +542,7 @@ export default function NotePage() {
 
           {/* Notes Tab */}
           <TabsContent value="notes">
-            <Card className="shadow-sm border-slate-200">
+            <Card className="bg-white border-slate-200 shadow-xl">
               <CardContent className="p-0">
                 <div
                   ref={notesContentRef}
@@ -604,9 +567,9 @@ export default function NotePage() {
           {/* Visual Tab */}
           <TabsContent value="visual">
             {note.visual_image_url ? (
-              <Card className="shadow-sm border-slate-200">
+              <Card className="bg-slate-900/50 border-slate-800">
                 <CardContent className="p-8">
-                  <div className="relative w-full rounded-lg overflow-hidden bg-slate-100" style={{ minHeight: '600px' }}>
+                  <div className="relative w-full rounded-xl overflow-hidden bg-slate-800 border border-slate-700" style={{ minHeight: '600px' }}>
                     <Image
                       src={note.visual_image_url}
                       alt={`Visual study sheet for ${note.title}`}
@@ -618,7 +581,7 @@ export default function NotePage() {
                     <Button
                       asChild
                       size="lg"
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 border-0"
                     >
                       <a href={note.visual_image_url} download target="_blank" rel="noopener noreferrer">
                         <Download className="h-5 w-5 mr-2" />
@@ -629,17 +592,17 @@ export default function NotePage() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="shadow-sm border-slate-200 border-dashed">
+              <Card className="bg-slate-900/50 border-slate-800 border-dashed">
                 <CardContent className="py-16 text-center">
                   <div className="max-w-md mx-auto">
-                    <div className="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                      <ImageIcon className="h-8 w-8 text-slate-400" />
+                    <div className="h-16 w-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4 border border-slate-700">
+                      <ImageIcon className="h-8 w-8 text-slate-500" />
                     </div>
-                    <h3 className="text-lg font-semibold text-slate-800 mb-2">Visual Not Available</h3>
-                    <p className="text-slate-500 mb-4">
+                    <h3 className="text-lg font-semibold text-white mb-2">Visual Not Available</h3>
+                    <p className="text-slate-400 mb-4">
                       The visual study sheet could not be generated for this note.
                     </p>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-slate-500">
                       You can still use the comprehensive notes and quiz to study.
                     </p>
                   </div>
@@ -652,16 +615,16 @@ export default function NotePage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="bg-slate-900 border-slate-800 text-white">
           <DialogHeader>
-            <DialogTitle className="text-red-600">Delete Note</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-red-400">Delete Note</DialogTitle>
+            <DialogDescription className="text-slate-400">
               This action cannot be undone. This will permanently delete the note
               &quot;{note.title}&quot; and its associated visual.
             </DialogDescription>
           </DialogHeader>
-          <div className="px-6 py-4">
-            <label className="block text-sm font-medium text-slate-700 mb-2">
+          <div className="py-4">
+            <label className="block text-sm font-medium text-slate-300 mb-2">
               Admin Password
             </label>
             <Input
@@ -669,7 +632,7 @@ export default function NotePage() {
               value={adminPassword}
               onChange={(e) => setAdminPassword(e.target.value)}
               placeholder="Enter admin password"
-              className="w-full"
+              className="w-full bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   handleDelete();
@@ -677,7 +640,7 @@ export default function NotePage() {
               }}
             />
             {deleteError && (
-              <p className="mt-2 text-sm text-red-600">{deleteError}</p>
+              <p className="mt-2 text-sm text-red-400">{deleteError}</p>
             )}
           </div>
           <DialogFooter>
@@ -685,13 +648,14 @@ export default function NotePage() {
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
               disabled={deleting}
+              className="bg-slate-800 border-slate-700 text-white hover:bg-slate-700"
             >
               Cancel
             </Button>
             <Button
               onClick={handleDelete}
               disabled={deleting}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 hover:bg-red-700 text-white border-0"
             >
               {deleting ? (
                 <>

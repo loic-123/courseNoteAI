@@ -24,7 +24,12 @@
       "Bash(npx tsc:*)",
       "Bash(del /F \"D:\\\\loic\\\\PERSO\\\\projects\\\\CourseNotesAI\\\\.next\\\\dev\\\\lock\")",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nInitial commit: CourseNotes AI application\n\nFeatures:\n- AI-powered notes generation with Claude\n- Interactive quizzes with detailed explanations\n- Visual summaries with FLUX image generation\n- Custom prompt support for personalized generation\n- Modern Three.js animated hero section\n- Admin password protected note deletion\n- PDF export functionality\n\nTech stack: Next.js 16, TypeScript, Supabase, Three.js, Tailwind CSS\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

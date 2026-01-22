@@ -871,11 +871,11 @@ function GeneratePageContent() {
                 <div className="text-right">
                   {promoResult?.valid && promoResult.discount > 0 ? (
                     <>
-                      <span className="text-slate-500 line-through text-sm mr-2">$2.00</span>
-                      <span className="text-2xl font-bold text-white">${promoResult.finalPrice}</span>
+                      <span className="text-slate-500 line-through text-sm mr-2">{formatPrice(currentPrice)}</span>
+                      <span className="text-2xl font-bold text-white">{formatPrice(Math.round(currentPrice * (1 - promoResult.discount / 100)))}</span>
                     </>
                   ) : (
-                    <span className="text-2xl font-bold text-white">$2.00</span>
+                    <span className="text-2xl font-bold text-white">{formatPrice(currentPrice)}</span>
                   )}
                 </div>
               </div>
@@ -947,7 +947,7 @@ function GeneratePageContent() {
               <CreditCard className="mr-2 h-5 w-5" />
               {promoResult?.valid && promoResult.discount === 100
                 ? 'Get Free Access'
-                : `Pay $${promoResult?.valid ? promoResult.finalPrice : '2.00'}`}
+                : `Pay ${promoResult?.valid ? formatPrice(Math.round(currentPrice * (1 - promoResult.discount / 100))) : formatPrice(currentPrice)}`}
             </Button>
 
             <p className="text-xs text-center text-slate-500">

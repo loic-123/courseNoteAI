@@ -299,17 +299,17 @@ export default function QuizContainer({ noteId, qcmData }: QuizContainerProps) {
                     key={index}
                     className={`p-4 border-2 rounded-lg ${
                       isCorrectAnswer
-                        ? 'border-green-500 bg-green-50'
+                        ? 'border-green-500 bg-green-50 text-gray-900'
                         : isUserAnswer
-                        ? 'border-red-500 bg-red-50'
+                        ? 'border-red-500 bg-red-50 text-gray-900'
                         : 'border-border'
                     }`}
                   >
                     <div className="flex items-center justify-between">
                       <span>{option}</span>
-                      {isCorrectAnswer && <span className="text-green-600 font-semibold">✓ Correct</span>}
+                      {isCorrectAnswer && <span className="text-green-700 font-semibold">✓ Correct</span>}
                       {isUserAnswer && !isCorrectAnswer && (
-                        <span className="text-red-600 font-semibold">✗ Your answer</span>
+                        <span className="text-red-700 font-semibold">✗ Your answer</span>
                       )}
                     </div>
                   </div>

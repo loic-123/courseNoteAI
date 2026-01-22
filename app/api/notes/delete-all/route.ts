@@ -3,6 +3,11 @@ import { supabase } from '@/lib/supabase/client';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
+interface NoteWithVisual {
+  id: string;
+  visual_image_url: string | null;
+}
+
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
@@ -19,7 +24,7 @@ export async function DELETE(request: NextRequest) {
     // Get all notes to delete their visuals from storage
     const { data: notes, error: fetchError } = await supabase
       .from('notes')
-      .select('id, visual_image_url');
+      .select('id, visual_image_url') as { data: NoteWithVisual[] | null; error: Error | null };
 
     if (fetchError) {
       console.error('Error fetching notes:', fetchError);

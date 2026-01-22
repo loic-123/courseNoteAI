@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parseFile } from '@/lib/parsers/file-parser';
 import { generateWithClaude } from '@/lib/ai/claude';
+import { generateVisualWithGemini, GeminiQuotaExceededError } from '@/lib/ai/gemini';
 import { generateVisualWithReplicate } from '@/lib/ai/replicate';
 import { supabase } from '@/lib/supabase/client';
 import { uploadImageToStorage, generateVisualFileName } from '@/lib/supabase/storage';
 import { TechnicalLevel, Length } from '@/types';
+import { VisualModel } from '@/lib/pricing/config';
 
 export const maxDuration = 300; // 5 minutes for generation
 
@@ -30,6 +32,7 @@ export async function POST(request: NextRequest) {
     const length = formData.get('length') as Length;
     const language = formData.get('language') as 'en' | 'fr';
     const customPrompt = formData.get('customPrompt') as string | null;
+    const visualModel = (formData.get('visualModel') as VisualModel) || 'ideogram';
 
     // Determine which API key to use
     let claudeApiKey: string;
@@ -164,31 +167,79 @@ export async function POST(request: NextRequest) {
       customPrompt || undefined
     );
 
-    // Step 5: Generate visual with Replicate and upload to Supabase Storage
-    console.log('Generating visual...');
+    // Step 5: Generate visual based on selected model
+    console.log('Generating visual with model:', visualModel);
     let visualUrl: string | null = null;
     try {
-      const replicateToken = process.env.REPLICATE_API_TOKEN;
-      if (replicateToken) {
-        // Generate image with Replicate
-        const replicateUrl = await generateVisualWithReplicate(
-          claudeResult.visualPrompt,
-          replicateToken
-        );
+      let visualResult: string | null = null;
 
-        if (replicateUrl) {
-          // Upload to Supabase Storage for permanent storage
+      let usedFallback = false;
+
+      if (visualModel === 'nano-banana') {
+        // Use Gemini (Nano Banana Pro) for premium quality
+        const geminiApiKey = process.env.GEMINI_API_KEY;
+        if (geminiApiKey) {
+          try {
+            visualResult = await generateVisualWithGemini(
+              claudeResult.visualPrompt,
+              geminiApiKey
+            );
+          } catch (geminiError) {
+            // If quota exceeded, fallback to Ideogram
+            if (geminiError instanceof GeminiQuotaExceededError) {
+              console.warn('Gemini quota exceeded, falling back to Ideogram v3');
+              usedFallback = true;
+            } else {
+              throw geminiError;
+            }
+          }
+        } else {
+          console.warn('GEMINI_API_KEY not configured, falling back to Ideogram');
+          usedFallback = true;
+        }
+      }
+
+      // Use Ideogram (standard) or as fallback when Gemini fails
+      if (!visualResult) {
+        const replicateToken = process.env.REPLICATE_API_TOKEN;
+        if (replicateToken) {
+          if (usedFallback) {
+            console.log('Using Ideogram v3 as fallback for premium visual');
+          }
+          visualResult = await generateVisualWithReplicate(
+            claudeResult.visualPrompt,
+            replicateToken
+          );
+        }
+      }
+
+      if (visualResult) {
+        // Check if it's a base64 data URL or a regular URL
+        if (visualResult.startsWith('data:')) {
+          // Upload base64 image to Supabase Storage
           console.log('Uploading visual to Supabase Storage...');
           const fileName = generateVisualFileName(title);
-          const permanentUrl = await uploadImageToStorage(replicateUrl, fileName);
+          const permanentUrl = await uploadImageToStorage(visualResult, fileName);
 
           if (permanentUrl) {
             visualUrl = permanentUrl;
             console.log('Visual stored permanently:', visualUrl);
           } else {
-            // Fallback to Replicate URL if upload fails
-            console.warn('Failed to upload to storage, using Replicate URL');
-            visualUrl = replicateUrl;
+            // Use the base64 data URL directly as fallback
+            console.warn('Failed to upload to storage, using base64 URL');
+            visualUrl = visualResult;
+          }
+        } else {
+          // It's a URL from Replicate - upload to permanent storage
+          console.log('Uploading visual to Supabase Storage...');
+          const fileName = generateVisualFileName(title);
+          const permanentUrl = await uploadImageToStorage(visualResult, fileName);
+
+          if (permanentUrl) {
+            visualUrl = permanentUrl;
+            console.log('Visual stored permanently:', visualUrl);
+          } else {
+            visualUrl = visualResult;
           }
         }
       }

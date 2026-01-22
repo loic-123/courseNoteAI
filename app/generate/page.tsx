@@ -15,12 +15,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { calculatePrice, formatPrice, VisualModel } from '@/lib/pricing/config';
 
 function GeneratePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [files, setFiles] = useState<File[]>([]);
-  const [useOwnKey, setUseOwnKey] = useState(true); // true = use own key (free), false = pay $2
+  const [useOwnKey, setUseOwnKey] = useState(true); // true = use own key, false = use server key
+  const [visualModel, setVisualModel] = useState<VisualModel>('ideogram'); // 'ideogram' or 'nano-banana'
   const [apiKey, setApiKey] = useState('');
   const [rememberKey, setRememberKey] = useState(true);
   const [creatorName, setCreatorName] = useState('');
@@ -75,7 +77,8 @@ function GeneratePageContent() {
         setLength(data.length || 'medium');
         setLanguage(data.language || 'en');
         setCustomPrompt(data.customPrompt || '');
-        setUseOwnKey(false); // They were going to pay
+        setVisualModel(data.visualModel || 'ideogram');
+        setUseOwnKey(data.useOwnKey ?? false); // Restore their choice
       } catch (e) {
         console.error('Failed to restore form data:', e);
       }
@@ -115,6 +118,9 @@ function GeneratePageContent() {
     }
   };
 
+  // Calculate dynamic price
+  const currentPrice = calculatePrice(visualModel, useOwnKey, length, detailLevel);
+
   // Save form data before going to Stripe
   const saveFormData = () => {
     const formData = {
@@ -128,6 +134,8 @@ function GeneratePageContent() {
       length,
       language,
       customPrompt,
+      visualModel,
+      useOwnKey,
     };
     sessionStorage.setItem('generateFormData', JSON.stringify(formData));
   };
@@ -174,7 +182,10 @@ function GeneratePageContent() {
       const response = await fetch('/api/validate-promo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ promoCode: promoCode.trim() }),
+        body: JSON.stringify({
+          promoCode: promoCode.trim(),
+          basePrice: currentPrice,
+        }),
       });
 
       const data = await response.json();
@@ -187,7 +198,7 @@ function GeneratePageContent() {
       }
     } catch (error) {
       console.error('Promo validation error:', error);
-      setPromoResult({ valid: false, discount: 0, finalPrice: '2.00', message: 'Error validating code' });
+      setPromoResult({ valid: false, discount: 0, finalPrice: formatPrice(currentPrice), message: 'Error validating code' });
     } finally {
       setPromoValidating(false);
     }
@@ -204,6 +215,9 @@ function GeneratePageContent() {
         body: JSON.stringify({
           promoCode: promoResult?.valid ? promoCode : undefined,
           returnUrl: window.location.origin + '/generate',
+          priceInCents: currentPrice,
+          visualModel,
+          hasApiKey: useOwnKey,
         }),
       });
 
@@ -281,6 +295,7 @@ function GeneratePageContent() {
       formData.append('technicalLevel', technicalLevel);
       formData.append('length', length);
       formData.append('language', language);
+      formData.append('visualModel', visualModel);
       if (customPrompt.trim()) {
         formData.append('customPrompt', customPrompt.trim());
       }
@@ -459,30 +474,76 @@ function GeneratePageContent() {
               )}
             </div>
 
+            {/* Visual Model Selection */}
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-slate-300">Visual Quality</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setVisualModel('ideogram')}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    visualModel === 'ideogram'
+                      ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`font-medium ${visualModel === 'ideogram' ? 'text-white' : 'text-slate-300'}`}>
+                      Standard
+                    </span>
+                    <span className={`text-sm font-semibold ${visualModel === 'ideogram' ? 'text-blue-400' : 'text-slate-400'}`}>
+                      {formatPrice(calculatePrice('ideogram', useOwnKey, length, detailLevel))}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">Ideogram v3 - Good quality visuals</p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setVisualModel('nano-banana')}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    visualModel === 'nano-banana'
+                      ? 'border-purple-500 bg-purple-500/10'
+                      : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`font-medium ${visualModel === 'nano-banana' ? 'text-white' : 'text-slate-300'}`}>
+                      Premium
+                    </span>
+                    <span className={`text-sm font-semibold ${visualModel === 'nano-banana' ? 'text-purple-400' : 'text-slate-400'}`}>
+                      {formatPrice(calculatePrice('nano-banana', useOwnKey, length, detailLevel))}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500">Nano Banana Pro - Perfect text rendering</p>
+                </button>
+              </div>
+            </div>
+
             {/* API Key Option */}
             <div className="space-y-4">
-              <label className="block text-sm font-medium text-slate-300">Generation Method</label>
+              <label className="block text-sm font-medium text-slate-300">API Key</label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setUseOwnKey(true)}
                   className={`p-4 rounded-xl border-2 text-left transition-all ${
                     useOwnKey
-                      ? 'border-blue-500 bg-blue-500/10'
+                      ? 'border-green-500 bg-green-500/10'
                       : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                      useOwnKey ? 'bg-blue-500/20' : 'bg-slate-700'
+                      useOwnKey ? 'bg-green-500/20' : 'bg-slate-700'
                     }`}>
-                      <Key className={`h-4 w-4 ${useOwnKey ? 'text-blue-400' : 'text-slate-400'}`} />
+                      <Key className={`h-4 w-4 ${useOwnKey ? 'text-green-400' : 'text-slate-400'}`} />
                     </div>
                     <span className={`font-medium ${useOwnKey ? 'text-white' : 'text-slate-300'}`}>
-                      Use my API key
+                      I have my own Claude API key
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500">Free - you pay Anthropic directly</p>
+                  <p className="text-xs text-slate-500">Lower price - you pay Anthropic for AI separately</p>
                 </button>
 
                 <button
@@ -490,21 +551,21 @@ function GeneratePageContent() {
                   onClick={() => setUseOwnKey(false)}
                   className={`p-4 rounded-xl border-2 text-left transition-all ${
                     !useOwnKey
-                      ? 'border-purple-500 bg-purple-500/10'
+                      ? 'border-orange-500 bg-orange-500/10'
                       : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                   }`}
                 >
                   <div className="flex items-center gap-3 mb-2">
                     <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                      !useOwnKey ? 'bg-purple-500/20' : 'bg-slate-700'
+                      !useOwnKey ? 'bg-orange-500/20' : 'bg-slate-700'
                     }`}>
-                      <CreditCard className={`h-4 w-4 ${!useOwnKey ? 'text-purple-400' : 'text-slate-400'}`} />
+                      <CreditCard className={`h-4 w-4 ${!useOwnKey ? 'text-orange-400' : 'text-slate-400'}`} />
                     </div>
                     <span className={`font-medium ${!useOwnKey ? 'text-white' : 'text-slate-300'}`}>
-                      Pay $2.00
+                      No API key
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500">No API key needed</p>
+                  <p className="text-xs text-slate-500">Higher price - AI usage included</p>
                 </button>
               </div>
 
@@ -543,6 +604,7 @@ function GeneratePageContent() {
                   </p>
                 </div>
               )}
+
             </div>
 
             {/* Creator Name */}
@@ -722,6 +784,18 @@ function GeneratePageContent() {
               </div>
             )}
 
+            {/* Dynamic Price Display - shown at bottom after all customization */}
+            <div className="p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/30">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-300">Total Price:</span>
+                <span className="text-2xl font-bold text-white">{formatPrice(currentPrice)}</span>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">
+                Based on: {visualModel === 'nano-banana' ? 'Premium visual' : 'Standard visual'} • {length} length • {detailLevel}/10 detail
+                {useOwnKey ? ' • Using your API key' : ''}
+              </p>
+            </div>
+
             {/* Generate Button */}
             <Button
               onClick={handleGenerateClick}
@@ -730,25 +804,20 @@ function GeneratePageContent() {
               size="lg"
             >
               {isGenerating ? (
-                <>
+                <span className="flex items-center">
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Generating...
-                </>
-              ) : useOwnKey ? (
-                <>
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Generate Notes (Free)
-                </>
+                </span>
               ) : isPaid ? (
-                <>
+                <span className="flex items-center">
                   <Sparkles className="mr-2 h-5 w-5" />
                   Generate Notes
-                </>
+                </span>
               ) : (
-                <>
+                <span className="flex items-center">
                   <CreditCard className="mr-2 h-5 w-5" />
-                  Continue to Payment ($2.00)
-                </>
+                  Continue to Payment ({formatPrice(currentPrice)})
+                </span>
               )}
             </Button>
 

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStripe, calculateFinalPrice, validatePromoCode, GENERATION_PRICE } from '@/lib/stripe/config';
+import { getStripe, validatePromoCode } from '@/lib/stripe/config';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { promoCode, returnUrl } = body;
+    const { promoCode, returnUrl, priceInCents, visualModel, hasApiKey } = body;
+
+    // Use dynamic price from client or default
+    let basePrice = priceInCents || 200; // Default £2.00
 
     // Validate promo code if provided
     let discount = 0;
@@ -19,7 +22,8 @@ export async function POST(request: NextRequest) {
       discount = promoResult.discount;
     }
 
-    const finalPrice = calculateFinalPrice(promoCode);
+    // Calculate final price with discount
+    const finalPrice = Math.round(basePrice * (1 - discount / 100));
 
     // If price is 0 (100% discount), grant access directly
     if (finalPrice === 0) {
@@ -30,6 +34,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Determine product description based on visual model
+    const visualDescription = visualModel === 'nano-banana'
+      ? 'Premium visual (Nano Banana Pro)'
+      : 'Standard visual (Ideogram v3)';
+
     // Create Stripe checkout session
     const stripe = getStripe();
     const session = await stripe.checkout.sessions.create({
@@ -37,10 +46,10 @@ export async function POST(request: NextRequest) {
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: 'gbp',
             product_data: {
               name: 'CourseNotes AI - Note Generation',
-              description: 'Generate comprehensive notes, quizzes, and visual summaries from your course materials',
+              description: `Generate comprehensive notes, quizzes, and visual summaries. ${visualDescription}`,
             },
             unit_amount: finalPrice,
           },
@@ -52,8 +61,10 @@ export async function POST(request: NextRequest) {
       cancel_url: `${returnUrl}?canceled=true`,
       metadata: {
         promoCode: promoCode || '',
-        originalPrice: GENERATION_PRICE.toString(),
+        originalPrice: basePrice.toString(),
         discount: discount.toString(),
+        visualModel: visualModel || 'ideogram',
+        hasApiKey: hasApiKey ? 'true' : 'false',
       },
     });
 

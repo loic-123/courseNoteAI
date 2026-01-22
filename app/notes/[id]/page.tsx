@@ -635,9 +635,9 @@ export default function NotePage() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-red-400">Delete Note</DialogTitle>
+        <DialogContent className="bg-slate-900 border-slate-800 text-white p-6 sm:p-8">
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="text-red-400 text-xl">Delete Note</DialogTitle>
             <DialogDescription className="text-slate-400">
               This action cannot be undone. This will permanently delete the note
               &quot;{note.title}&quot; and its associated visual.
@@ -663,7 +663,7 @@ export default function NotePage() {
               <p className="mt-2 text-sm text-red-400">{deleteError}</p>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-0">
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}

@@ -1,35 +1,54 @@
 import { supabase } from './client';
 
 /**
- * Downloads an image from a URL and uploads it to Supabase Storage
- * @param imageUrl - The URL of the image to download (e.g., from Replicate)
+ * Downloads an image from a URL or base64 data URL and uploads it to Supabase Storage
+ * @param imageSource - The URL or base64 data URL of the image
  * @param fileName - The name to give the file in storage (without extension)
  * @param bucket - The storage bucket name (default: 'visuals')
  * @returns The public URL of the uploaded image, or null if failed
  */
 export async function uploadImageToStorage(
-  imageUrl: string,
+  imageSource: string,
   fileName: string,
   bucket: string = 'visuals'
 ): Promise<string | null> {
   try {
-    console.log('Downloading image from:', imageUrl.substring(0, 100) + '...');
+    let buffer: Buffer;
+    let contentType: string;
+    let extension: string;
 
-    // Fetch the image from the URL
-    const response = await fetch(imageUrl);
+    // Check if it's a base64 data URL
+    if (imageSource.startsWith('data:')) {
+      console.log('Processing base64 image...');
 
-    if (!response.ok) {
-      console.error('Failed to fetch image:', response.status, response.statusText);
-      return null;
+      // Parse data URL: data:image/png;base64,xxxxx
+      const matches = imageSource.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        console.error('Invalid base64 data URL format');
+        return null;
+      }
+
+      contentType = matches[1];
+      const base64Data = matches[2];
+      buffer = Buffer.from(base64Data, 'base64');
+      extension = getExtensionFromContentType(contentType);
+    } else {
+      // It's a regular URL - fetch it
+      console.log('Downloading image from:', imageSource.substring(0, 100) + '...');
+
+      const response = await fetch(imageSource);
+
+      if (!response.ok) {
+        console.error('Failed to fetch image:', response.status, response.statusText);
+        return null;
+      }
+
+      contentType = response.headers.get('content-type') || 'image/webp';
+      extension = getExtensionFromContentType(contentType);
+
+      const arrayBuffer = await response.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
     }
-
-    // Get the content type to determine file extension
-    const contentType = response.headers.get('content-type') || 'image/webp';
-    const extension = getExtensionFromContentType(contentType);
-
-    // Get the image as a buffer
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
     // Generate unique file path
     const filePath = `${fileName}.${extension}`;

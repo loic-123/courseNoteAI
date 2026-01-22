@@ -70,25 +70,32 @@ ${customPrompt ? `\n**Custom Instructions from User:**\n${customPrompt}` : ''}
 ---QCM_END---
 
 ---VISUAL_PROMPT_START---
-[Generate a prompt for an AI image generator (FLUX). The prompt must be a DIRECT DESCRIPTION of the final image, NOT instructions to create it.
+[Generate a prompt for AI image generation to create an EDUCATIONAL STUDY SHEET / CHEAT SHEET poster.
 
-CRITICAL RULES FOR THE PROMPT:
-1. START with the main subject and style: "Educational infographic poster about [TOPIC]"
-2. DESCRIBE what is VISIBLE in the image, not what to do
-3. Use descriptive adjectives: "clean", "modern", "minimalist", "professional"
-4. Mention specific visual elements: "flowchart", "diagram", "icons", "color-coded sections"
-5. Include color palette: "blue and white color scheme", "teal accents"
-6. Add quality keywords: "high quality", "sharp text", "professional design", "vector style"
-7. Keep it under 200 words - FLUX works better with concise prompts
-8. NO instructions like "create", "use", "make" - only descriptions
+YOUR TASK:
+1. Extract the 4-6 MOST IMPORTANT concepts/terms from the course content
+2. Create a prompt that describes a clean study poster with these exact terms
 
-GOOD EXAMPLE:
-"Educational infographic poster about machine learning algorithms, clean modern design, white background with blue and teal accents. Large title at top. Left section showing decision tree diagram with branching nodes. Center area featuring neural network illustration with connected layers. Right column with key definitions in rounded boxes. Bottom summary panel with main takeaways. Minimalist icons, professional typography, vector style illustration, high quality render, sharp readable text"
+PROMPT FORMAT (follow this structure exactly):
+"Educational study sheet poster about [TOPIC]. A3 LANDSCAPE FORMAT (horizontal orientation, wide aspect ratio 297x420mm). Clean modern design with dark blue gradient background.
 
-BAD EXAMPLE (DO NOT DO THIS):
-"Create a poster about ML. Use blue colors. Add a diagram. Make it educational."
+Title at top: '[MAIN TOPIC TITLE]'
 
-Generate a prompt following the GOOD example format for the course content above.]
+Key concepts displayed in white rounded boxes arranged horizontally across the wide format:
+- '[CONCEPT 1]' with brief definition
+- '[CONCEPT 2]' with brief definition
+- '[CONCEPT 3]' with brief definition
+- '[CONCEPT 4]' with brief definition
+
+Include simple icons next to each concept. Professional typography, minimalist style, high contrast, easy to read text. Wide landscape layout optimized for A3 horizontal printing."
+
+RULES:
+- MUST specify A3 LANDSCAPE FORMAT (horizontal/wide) in the prompt
+- Use SHORT words/phrases (2-4 words max per concept)
+- Maximum 6 concepts total
+- Keep all text in the same language as the course
+- Style: clean, modern, educational poster design, wide horizontal layout
+- Colors: dark background with light text for readability]
 ---VISUAL_PROMPT_END---
 
 CRITICAL REQUIREMENTS:

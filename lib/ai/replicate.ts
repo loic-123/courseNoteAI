@@ -6,119 +6,115 @@ export async function generateVisualWithReplicate(
 ): Promise<string> {
   const replicate = new Replicate({ auth: replicateApiToken });
 
-  console.log('Starting Replicate visual generation...');
+  console.log('Starting Replicate visual generation with Ideogram v3...');
   console.log('Prompt length:', prompt.length);
 
   try {
-    // Use Ideogram v3 for superior text rendering and infographic quality
-    // Ideogram is specifically designed for accurate text in images
     const output = await replicate.run(
       'ideogram-ai/ideogram-v3-balanced',
       {
         input: {
           prompt: prompt,
           aspect_ratio: '3:4',
-          style_type: 'design',
-          magic_prompt_option: 'on',
-          negative_prompt: 'blurry, low quality, distorted text, misspelled words, illegible, pixelated',
+          style_type: 'Design',
+          magic_prompt_option: 'Off',
         },
       }
     );
 
     console.log('Replicate output type:', typeof output);
-    console.log('Replicate output is array:', Array.isArray(output));
+    console.log('Replicate output:', JSON.stringify(output, null, 2).substring(0, 500));
 
-    // Debug: log all properties of output
-    if (output && typeof output === 'object') {
-      console.log('Output keys:', Object.keys(output));
-      console.log('Output prototype:', Object.getPrototypeOf(output)?.constructor?.name);
-    }
+    // Helper function to extract URL from various formats
+    const extractUrl = (item: unknown): string | null => {
+      if (!item) return null;
 
-    // FLUX returns an array of FileOutput objects
-    if (Array.isArray(output) && output.length > 0) {
-      const firstItem = output[0];
-      console.log('First item type:', typeof firstItem);
-      console.log('First item constructor:', firstItem?.constructor?.name);
-
-      // Try toString first - FileOutput objects convert to URL string
-      const urlString = String(firstItem);
-      console.log('First item as string:', urlString.substring(0, 200));
-
-      if (urlString.startsWith('http')) {
-        console.log('SUCCESS: Got URL from String(FileOutput):', urlString);
-        return urlString;
+      // Direct string URL
+      if (typeof item === 'string' && item.startsWith('http')) {
+        return item;
       }
 
-      // Check if it has a url method (FileOutput)
-      if (firstItem && typeof firstItem === 'object') {
-        const fileObj = firstItem as Record<string, unknown>;
+      // Object with url property
+      if (typeof item === 'object') {
+        const obj = item as Record<string, unknown>;
 
-        console.log('FileObj properties:', Object.keys(fileObj));
-        console.log('FileObj.url type:', typeof fileObj.url);
-
-        // Try calling url() if it's a function
-        if (typeof fileObj.url === 'function') {
-          try {
-            const urlResult = await fileObj.url();
-            console.log('SUCCESS: URL from url() method:', urlResult);
-            return urlResult;
-          } catch (e) {
-            console.log('url() method failed:', e);
-          }
-        }
-
-        // Try getting url as property
-        if (typeof fileObj.url === 'string') {
-          console.log('SUCCESS: URL from url property:', fileObj.url);
-          return fileObj.url;
+        // Try url property
+        if (typeof obj.url === 'string' && obj.url.startsWith('http')) {
+          return obj.url;
         }
 
         // Try href property
-        if (typeof fileObj.href === 'string') {
-          console.log('SUCCESS: URL from href property:', fileObj.href);
-          return fileObj.href;
+        if (typeof obj.href === 'string' && obj.href.startsWith('http')) {
+          return obj.href;
         }
 
-        // Check for Symbol.toStringTag or other hidden properties
-        const symbols = Object.getOwnPropertySymbols(fileObj);
-        console.log('FileObj symbols:', symbols.length);
-
-        // Try using for...in to find enumerable properties
-        for (const key in fileObj) {
-          console.log(`FileObj[${key}]:`, typeof fileObj[key], fileObj[key]);
+        // Try toString() - FileOutput objects convert to URL
+        const str = String(item);
+        if (str.startsWith('http')) {
+          return str;
         }
       }
 
-      // If firstItem is directly a string URL
-      if (typeof firstItem === 'string' && firstItem.startsWith('http')) {
-        console.log('SUCCESS: Direct string URL:', firstItem);
-        return firstItem;
+      return null;
+    };
+
+    // Try direct output
+    let url = extractUrl(output);
+    if (url) {
+      console.log('SUCCESS: Extracted URL directly:', url);
+      return url;
+    }
+
+    // Try array of outputs
+    if (Array.isArray(output) && output.length > 0) {
+      url = extractUrl(output[0]);
+      if (url) {
+        console.log('SUCCESS: Extracted URL from array[0]:', url);
+        return url;
       }
     }
 
-    // If output is directly a string URL
-    if (typeof output === 'string' && (output as string).startsWith('http')) {
-      console.log('SUCCESS: Output is direct string URL:', output);
-      return output;
-    }
-
-    // Last resort: check if output has url property
+    // Try data array (some APIs return { data: [...] })
     if (output && typeof output === 'object' && !Array.isArray(output)) {
       const obj = output as Record<string, unknown>;
-      console.log('Non-array object keys:', Object.keys(obj));
-      if (obj.url) {
-        const url = typeof obj.url === 'function' ? await obj.url() : obj.url;
-        console.log('SUCCESS: URL from output object:', url);
-        return url as string;
+
+      if (Array.isArray(obj.data) && obj.data.length > 0) {
+        url = extractUrl(obj.data[0]);
+        if (url) {
+          console.log('SUCCESS: Extracted URL from data[0]:', url);
+          return url;
+        }
+      }
+
+      // Try images array
+      if (Array.isArray(obj.images) && obj.images.length > 0) {
+        url = extractUrl(obj.images[0]);
+        if (url) {
+          console.log('SUCCESS: Extracted URL from images[0]:', url);
+          return url;
+        }
+      }
+
+      // Try output property
+      if (obj.output) {
+        url = extractUrl(obj.output);
+        if (url) {
+          console.log('SUCCESS: Extracted URL from output property:', url);
+          return url;
+        }
+
+        if (Array.isArray(obj.output) && obj.output.length > 0) {
+          url = extractUrl(obj.output[0]);
+          if (url) {
+            console.log('SUCCESS: Extracted URL from output[0]:', url);
+            return url;
+          }
+        }
       }
     }
 
-    console.error('Could not extract URL from output');
-    console.error('Output raw:', output);
-    console.error('Output JSON:', JSON.stringify(output, (_key, value) => {
-      if (typeof value === 'function') return `[Function: ${value.name || 'anonymous'}]`;
-      return value;
-    }, 2));
+    console.error('Could not extract URL from Replicate output');
+    console.error('Full output:', JSON.stringify(output, null, 2));
     throw new Error('Could not extract image URL from Replicate response');
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);

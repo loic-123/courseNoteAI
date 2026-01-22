@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validatePromoCode, GENERATION_PRICE } from '@/lib/stripe/config';
+import { validatePromoCode } from '@/lib/stripe/config';
+import { formatPrice } from '@/lib/pricing/config';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { promoCode } = body;
+    const { promoCode, basePrice } = body;
 
     if (!promoCode) {
       return NextResponse.json(
@@ -13,19 +14,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use dynamic base price or default to £2.00
+    const priceInCents = basePrice || 200;
+
     const result = validatePromoCode(promoCode);
 
     if (result.valid) {
-      const originalPrice = GENERATION_PRICE / 100;
-      const discountAmount = (GENERATION_PRICE * result.discount / 100) / 100;
-      const finalPrice = originalPrice - discountAmount;
+      const discountAmount = Math.round(priceInCents * result.discount / 100);
+      const finalPriceCents = priceInCents - discountAmount;
 
       return NextResponse.json({
         valid: true,
         discount: result.discount,
-        originalPrice: originalPrice.toFixed(2),
-        discountAmount: discountAmount.toFixed(2),
-        finalPrice: finalPrice.toFixed(2),
+        originalPrice: formatPrice(priceInCents),
+        discountAmount: formatPrice(discountAmount),
+        finalPrice: formatPrice(finalPriceCents),
         message: result.discount === 100
           ? 'Free access!'
           : `${result.discount}% off applied!`,

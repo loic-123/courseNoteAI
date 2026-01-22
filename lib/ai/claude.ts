@@ -8,6 +8,10 @@ export interface ClaudeGenerationResult {
   visualPrompt: string;
 }
 
+// Maximum characters for extracted text to ensure Claude has room for response
+// Claude Sonnet has ~200k context, but we limit input to leave room for output
+const MAX_EXTRACTED_TEXT_LENGTH = 50000;
+
 export async function generateWithClaude(
   apiKey: string,
   extractedText: string,
@@ -20,8 +24,16 @@ export async function generateWithClaude(
 ): Promise<ClaudeGenerationResult> {
   const anthropic = new Anthropic({ apiKey });
 
+  // Truncate extracted text if too long to ensure Claude can complete all sections
+  let processedText = extractedText;
+  if (extractedText.length > MAX_EXTRACTED_TEXT_LENGTH) {
+    console.warn(`Extracted text truncated from ${extractedText.length} to ${MAX_EXTRACTED_TEXT_LENGTH} characters`);
+    processedText = extractedText.substring(0, MAX_EXTRACTED_TEXT_LENGTH) +
+      '\n\n[... Content truncated for processing. The above represents the main content of the document.]';
+  }
+
   const prompt = buildNotesGenerationPrompt(
-    extractedText,
+    processedText,
     detailLevel,
     useMetaphors,
     technicalLevel,
@@ -41,6 +53,11 @@ export async function generateWithClaude(
     ],
   });
 
+  // Check if response was truncated due to max_tokens
+  if (message.stop_reason === 'max_tokens') {
+    console.error('Claude response was truncated due to max_tokens limit');
+  }
+
   const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
 
   // Parse the three sections
@@ -49,9 +66,27 @@ export async function generateWithClaude(
   const visualMatch = responseText.match(/---VISUAL_PROMPT_START---([\s\S]*?)---VISUAL_PROMPT_END---/);
 
   if (!notesMatch || !qcmMatch || !visualMatch) {
-    console.error('Failed to parse sections. Response preview:', responseText.substring(0, 500));
-    console.error('notesMatch:', !!notesMatch, 'qcmMatch:', !!qcmMatch, 'visualMatch:', !!visualMatch);
-    throw new Error(`Failed to parse Claude response. Missing sections: ${!notesMatch ? 'NOTES ' : ''}${!qcmMatch ? 'QCM ' : ''}${!visualMatch ? 'VISUAL' : ''}`);
+    const missingSections = [];
+    if (!notesMatch) missingSections.push('NOTES');
+    if (!qcmMatch) missingSections.push('QCM');
+    if (!visualMatch) missingSections.push('VISUAL');
+
+    console.error('Failed to parse sections. Response length:', responseText.length);
+    console.error('Stop reason:', message.stop_reason);
+    console.error('Missing sections:', missingSections.join(', '));
+    console.error('Response ends with:', responseText.substring(Math.max(0, responseText.length - 200)));
+
+    // Provide more helpful error message
+    let errorMsg = `Failed to generate complete study materials. Missing: ${missingSections.join(', ')}.`;
+    if (message.stop_reason === 'max_tokens') {
+      errorMsg += ' The response was cut off due to length limits. Try with a shorter document.';
+    } else if (responseText.length < 500) {
+      errorMsg += ' The AI response was unexpectedly short. Please try again.';
+    } else {
+      errorMsg += ' Please try again or use a shorter document.';
+    }
+
+    throw new Error(errorMsg);
   }
 
   const notesMarkdown = notesMatch[1].trim();

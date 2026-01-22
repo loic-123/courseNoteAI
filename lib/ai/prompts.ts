@@ -34,18 +34,20 @@ ${extractedText}
 - Language: ${language === 'en' ? 'English' : 'French'}
 ${customPrompt ? `\n**Custom Instructions from User:**\n${customPrompt}` : ''}
 
-**Your task is to generate THREE outputs in the following EXACT format:**
+**Your task is to generate THREE outputs in the following EXACT format and order:**
 
----NOTES_START---
-[Generate comprehensive markdown notes here with:
-- Clear hierarchical structure (# ## ### headers)
-- Detailed explanations at the specified detail level
-- ${useMetaphors ? 'Creative metaphors and analogies to clarify concepts' : 'Direct explanations'}
-- Code examples where relevant
-- LaTeX math notation using $...$ for inline and $$...$$ for blocks
-- Key concepts highlighted
-- Summaries at the end of each major section]
----NOTES_END---
+IMPORTANT: Generate sections in THIS EXACT ORDER to ensure completion:
+1. VISUAL_PROMPT (shortest - do this first)
+2. QCM (quiz questions)
+3. NOTES (longest - do this last)
+
+---VISUAL_PROMPT_START---
+[Generate a SHORT prompt (max 200 words) for AI image generation to create an EDUCATIONAL STUDY SHEET poster.
+Extract 4-6 key concepts from the content and create a poster prompt like:
+"Educational study sheet poster about [TOPIC]. A3 LANDSCAPE FORMAT. Dark blue gradient background.
+Title: '[TOPIC]'. Key concepts in white rounded boxes: '[CONCEPT 1]', '[CONCEPT 2]', '[CONCEPT 3]', '[CONCEPT 4]'.
+Simple icons, professional typography, minimalist style, high contrast."]
+---VISUAL_PROMPT_END---
 
 ---QCM_START---
 {
@@ -55,58 +57,36 @@ ${customPrompt ? `\n**Custom Instructions from User:**\n${customPrompt}` : ''}
       "question": "Question text here",
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "correct_answer": 2,
-      "explanation": "Detailed 2-3 line explanation of why this is correct and others are wrong",
+      "explanation": "Brief explanation of why this is correct",
       "difficulty": "medium",
       "topic": "Topic name"
     }
-    // Generate 10-15 questions total, mix of easy (30%), medium (50%), hard (20%)
   ],
   "metadata": {
-    "total_questions": 15,
-    "estimated_time_minutes": 10,
+    "total_questions": 10,
+    "estimated_time_minutes": 8,
     "passing_score_percentage": 60
   }
 }
+Generate 8-12 questions total, mix of easy (30%), medium (50%), hard (20%).
 ---QCM_END---
 
----VISUAL_PROMPT_START---
-[Generate a prompt for AI image generation to create an EDUCATIONAL STUDY SHEET / CHEAT SHEET poster.
-
-YOUR TASK:
-1. Extract the 4-6 MOST IMPORTANT concepts/terms from the course content
-2. Create a prompt that describes a clean study poster with these exact terms
-
-PROMPT FORMAT (follow this structure exactly):
-"Educational study sheet poster about [TOPIC]. A3 LANDSCAPE FORMAT (horizontal orientation, wide aspect ratio 297x420mm). Clean modern design with dark blue gradient background.
-
-Title at top: '[MAIN TOPIC TITLE]'
-
-Key concepts displayed in white rounded boxes arranged horizontally across the wide format:
-- '[CONCEPT 1]' with brief definition
-- '[CONCEPT 2]' with brief definition
-- '[CONCEPT 3]' with brief definition
-- '[CONCEPT 4]' with brief definition
-
-Include simple icons next to each concept. Professional typography, minimalist style, high contrast, easy to read text. Wide landscape layout optimized for A3 horizontal printing."
-
-RULES:
-- MUST specify A3 LANDSCAPE FORMAT (horizontal/wide) in the prompt
-- Use SHORT words/phrases (2-4 words max per concept)
-- Maximum 6 concepts total
-- Keep all text in the same language as the course
-- Style: clean, modern, educational poster design, wide horizontal layout
-- Colors: dark background with light text for readability]
----VISUAL_PROMPT_END---
+---NOTES_START---
+[Generate comprehensive markdown notes with:
+- Clear hierarchical structure (# ## ### headers)
+- Explanations at detail level ${detailLevel}/10
+- ${useMetaphors ? 'Creative metaphors and analogies' : 'Direct explanations'}
+- Code examples where relevant
+- LaTeX math: $inline$ and $$blocks$$
+- Key concepts highlighted]
+---NOTES_END---
 
 CRITICAL REQUIREMENTS:
-- Write ALL content in ${language === 'en' ? 'English' : 'French'}
-- You MUST include ALL THREE SECTIONS with their EXACT delimiters
-- ALL sections are REQUIRED: NOTES, QCM, and VISUAL_PROMPT
-- Ensure QCM JSON is valid
-- Keep notes focused and well-structured
-- If you need to cut content, prioritize completing all three sections over adding more detail
-
-REMINDER: End your response with ---VISUAL_PROMPT_END--- to ensure all sections are complete!`;
+- Language: ${language === 'en' ? 'English' : 'French'}
+- You MUST include ALL THREE SECTIONS with EXACT delimiters
+- Generate in order: VISUAL_PROMPT → QCM → NOTES
+- Keep VISUAL_PROMPT under 200 words
+- If running low on space, keep notes concise but ALWAYS complete all 3 sections`;
 }
 
 export function validateApiKey(apiKey: string): boolean {

@@ -1,6 +1,7 @@
 import mammoth from 'mammoth';
 import Tesseract from 'tesseract.js';
 import pdfParse from 'pdf-parse-fork';
+import { ocrWithMistral } from '@/lib/ai/mistral-ocr';
 
 export async function parseFile(file: File): Promise<string> {
   const fileType = file.type;
@@ -26,31 +27,51 @@ async function parsePDF(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
+  // Try standard text extraction first
   try {
     const data = await pdfParse(buffer);
     const text = data.text.trim();
 
     // If we have enough text, return it
     if (text.length > 50) {
+      console.log('PDF parsed successfully with standard extraction');
       return text;
     }
 
-    // PDF is likely a scanned document (image-only)
+    // PDF is likely a scanned document - try OCR
+    console.log('PDF has little text, trying Mistral OCR...');
+  } catch (error) {
+    console.log('PDF parse failed, trying Mistral OCR...', error);
+  }
+
+  // Fallback to Mistral OCR for scanned PDFs
+  return await parsePDFWithOCR(file);
+}
+
+async function parsePDFWithOCR(file: File): Promise<string> {
+  // Check if Mistral API key is configured
+  if (!process.env.MISTRAL_API_KEY) {
     throw new Error(
-      'This PDF appears to be a scanned document with no extractable text. ' +
+      'This PDF appears to be a scanned document. OCR is not configured. ' +
       'Please upload the document as images (PNG, JPG) instead, or use a PDF with selectable text.'
     );
-  } catch (error) {
-    // Re-throw our custom error
-    if (error instanceof Error && error.message.includes('scanned document')) {
-      throw error;
+  }
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    const text = await ocrWithMistral(base64, 'application/pdf');
+
+    if (!text || text.length < 50) {
+      throw new Error('OCR could not extract meaningful text from this document.');
     }
 
-    // Handle other parsing errors
-    console.error('PDF parse error:', error);
+    return text;
+  } catch (error) {
+    console.error('Mistral OCR error:', error);
     throw new Error(
-      'Failed to parse this PDF. The file may be corrupted, password-protected, or in an unsupported format. ' +
-      'Try uploading as images instead.'
+      'Failed to process this scanned PDF. ' +
+      'Try uploading the document as images (PNG, JPG) instead.'
     );
   }
 }
@@ -67,9 +88,27 @@ async function parseTXT(file: File): Promise<string> {
 }
 
 async function parseImage(file: File): Promise<string> {
+  // Try Mistral OCR first if available (better accuracy)
+  if (process.env.MISTRAL_API_KEY) {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      const text = await ocrWithMistral(base64, file.type);
+
+      if (text && text.length > 10) {
+        console.log('Image OCR completed with Mistral');
+        return text;
+      }
+    } catch (error) {
+      console.log('Mistral OCR failed for image, falling back to Tesseract...', error);
+    }
+  }
+
+  // Fallback to Tesseract.js (slower but works offline)
+  console.log('Using Tesseract.js for image OCR...');
   const {
     data: { text },
-  } = await Tesseract.recognize(file, 'eng', {
+  } = await Tesseract.recognize(file, 'eng+fra', {
     logger: (m) => console.log(m),
   });
   return text;

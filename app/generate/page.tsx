@@ -267,13 +267,7 @@ function GeneratePageContent() {
       return;
     }
 
-    // If using own key, generate directly (free)
-    if (useOwnKey) {
-      handleGenerate();
-      return;
-    }
-
-    // If not using own key, check payment
+    // Always require payment (price is lower with own API key)
     if (!isPaid) {
       setShowPaymentModal(true);
       return;

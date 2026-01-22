@@ -17,6 +17,8 @@ import {
 } from '@/components/ui/dialog';
 import { calculatePrice, formatPrice, VisualModel } from '@/lib/pricing/config';
 
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB - Vercel body size limit
+
 function GeneratePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -143,7 +145,14 @@ function GeneratePageContent() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
-      setFiles(prev => [...prev, ...newFiles]);
+      const validFiles = newFiles.filter(file => {
+        if (file.size > MAX_FILE_SIZE) {
+          alert(`${file.name} is too large (max 4MB). Please use a smaller file.`);
+          return false;
+        }
+        return true;
+      });
+      setFiles(prev => [...prev, ...validFiles]);
     }
   };
 
@@ -166,7 +175,14 @@ function GeneratePageContent() {
 
     if (e.dataTransfer.files) {
       const newFiles = Array.from(e.dataTransfer.files);
-      setFiles(prev => [...prev, ...newFiles]);
+      const validFiles = newFiles.filter(file => {
+        if (file.size > MAX_FILE_SIZE) {
+          alert(`${file.name} is too large (max 4MB). Please use a smaller file.`);
+          return false;
+        }
+        return true;
+      });
+      setFiles(prev => [...prev, ...validFiles]);
     }
   };
 
@@ -439,7 +455,7 @@ function GeneratePageContent() {
                     {isDragging ? 'Drop files here...' : 'Click to upload or drag & drop'}
                   </p>
                   <p className="text-sm text-slate-500 mt-1">
-                    PDF, DOCX, TXT, or images (max 50MB each)
+                    PDF, DOCX, TXT, or images (max 4MB each)
                   </p>
                 </label>
               </div>

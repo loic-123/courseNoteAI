@@ -25,8 +25,34 @@ export async function parseFile(file: File): Promise<string> {
 async function parsePDF(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
-  const data = await pdfParse(buffer);
-  return data.text;
+
+  try {
+    const data = await pdfParse(buffer);
+    const text = data.text.trim();
+
+    // If we have enough text, return it
+    if (text.length > 50) {
+      return text;
+    }
+
+    // PDF is likely a scanned document (image-only)
+    throw new Error(
+      'This PDF appears to be a scanned document with no extractable text. ' +
+      'Please upload the document as images (PNG, JPG) instead, or use a PDF with selectable text.'
+    );
+  } catch (error) {
+    // Re-throw our custom error
+    if (error instanceof Error && error.message.includes('scanned document')) {
+      throw error;
+    }
+
+    // Handle other parsing errors
+    console.error('PDF parse error:', error);
+    throw new Error(
+      'Failed to parse this PDF. The file may be corrupted, password-protected, or in an unsupported format. ' +
+      'Try uploading as images instead.'
+    );
+  }
 }
 
 async function parseDOCX(file: File): Promise<string> {

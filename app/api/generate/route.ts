@@ -10,12 +10,24 @@ import { VisualModel } from '@/lib/pricing/config';
 
 export const maxDuration = 300; // 5 minutes for generation
 
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB - Vercel body size limit
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
 
     // Extract all parameters
     const files = formData.getAll('file') as File[];
+
+    // Validate file sizes
+    for (const file of files) {
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: `File ${file.name} exceeds 4MB limit. Please use a smaller file.` },
+          { status: 400 }
+        );
+      }
+    }
     const userApiKey = formData.get('claudeApiKey') as string | null;
     const useServerKey = formData.get('useServerKey') === 'true';
     const institutionId = formData.get('institutionId') as string;

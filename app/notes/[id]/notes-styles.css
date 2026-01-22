@@ -275,23 +275,10 @@
   color: #6b7280;
 }
 
-/* Key insights / Important boxes */
-.notes-content > p:has(strong:first-child) {
-  background-color: #fef3c7;
-  border-left: 4px solid #f59e0b;
-  padding: 1rem 1.25rem;
-  border-radius: 0 8px 8px 0;
-  margin: 1.5rem 0;
-}
-
-/* Metaphor styling */
-.notes-content > p:has(em:first-child) {
-  background-color: #f0fdf4;
-  border-left: 4px solid #22c55e;
-  padding: 1rem 1.25rem;
-  border-radius: 0 8px 8px 0;
-  margin: 1.5rem 0;
-  font-style: normal;
+/* Key insights - just bold text, no background */
+.notes-content > p strong:first-child {
+  font-weight: 700;
+  font-size: 1.05em;
 }
 
 /* Print styles */

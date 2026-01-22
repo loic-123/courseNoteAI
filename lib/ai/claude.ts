@@ -42,7 +42,11 @@ export async function generateWithClaude(
     customPrompt
   );
 
-  const message = await anthropic.messages.create({
+  // Use streaming for long operations (required for >10min requests)
+  let responseText = '';
+  let stopReason = '';
+
+  const stream = anthropic.messages.stream({
     model: 'claude-sonnet-4-5-20250929',
     max_tokens: 32000, // Increased to allow longer notes
     messages: [
@@ -53,12 +57,22 @@ export async function generateWithClaude(
     ],
   });
 
-  // Check if response was truncated due to max_tokens
-  if (message.stop_reason === 'max_tokens') {
-    console.error('Claude response was truncated due to max_tokens limit');
+  // Collect streamed response
+  for await (const event of stream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      responseText += event.delta.text;
+    }
+    if (event.type === 'message_stop') {
+      // Get final message to check stop reason
+      const finalMessage = await stream.finalMessage();
+      stopReason = finalMessage.stop_reason || '';
+    }
   }
 
-  const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+  // Check if response was truncated due to max_tokens
+  if (stopReason === 'max_tokens') {
+    console.error('Claude response was truncated due to max_tokens limit');
+  }
 
   // Parse the three sections
   const notesMatch = responseText.match(/---NOTES_START---([\s\S]*?)---NOTES_END---/);
@@ -72,13 +86,13 @@ export async function generateWithClaude(
     if (!visualMatch) missingSections.push('VISUAL');
 
     console.error('Failed to parse sections. Response length:', responseText.length);
-    console.error('Stop reason:', message.stop_reason);
+    console.error('Stop reason:', stopReason);
     console.error('Missing sections:', missingSections.join(', '));
     console.error('Response ends with:', responseText.substring(Math.max(0, responseText.length - 200)));
 
     // Provide more helpful error message
     let errorMsg = `Failed to generate complete study materials. Missing: ${missingSections.join(', ')}.`;
-    if (message.stop_reason === 'max_tokens') {
+    if (stopReason === 'max_tokens') {
       errorMsg += ' The response was cut off due to length limits. Try with a shorter document.';
     } else if (responseText.length < 500) {
       errorMsg += ' The AI response was unexpectedly short. Please try again.';

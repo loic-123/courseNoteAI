@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { calculatePrice, formatPrice, VisualModel } from '@/lib/pricing/config';
 
-const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB - Vercel body size limit
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB for local dev (Vercel limit is 4.5MB)
 
 function GeneratePageContent() {
   const router = useRouter();

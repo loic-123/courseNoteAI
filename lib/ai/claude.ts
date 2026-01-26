@@ -48,7 +48,7 @@ export async function generateWithClaude(
 
   const stream = anthropic.messages.stream({
     model: 'claude-sonnet-4-5-20250929',
-    max_tokens: 32000, // Increased to allow longer notes
+    max_tokens: 40000, // Increased to allow longer notes
     messages: [
       {
         role: 'user',

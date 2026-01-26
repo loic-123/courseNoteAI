@@ -8,9 +8,9 @@ import { uploadImageToStorage, generateVisualFileName } from '@/lib/supabase/sto
 import { TechnicalLevel, Length } from '@/types';
 import { VisualModel } from '@/lib/pricing/config';
 
-export const maxDuration = 300; // 5 minutes for generation
+export const maxDuration = 600; // 10 minutes for generation (streaming takes longer)
 
-const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB - Vercel body size limit
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB for local dev (Vercel limit is 4.5MB)
 
 export async function POST(request: NextRequest) {
   try {
